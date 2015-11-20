@@ -1,7 +1,7 @@
 {
   "name": "crawlkit",
   "version": "1.0.0",
-  "description": "",
+  "description": "A crawler based on Phantom. Allows discovery of dynamic content and supports custom scrapers.",
   "main": "index.js",
   "scripts": {
     "test": "mocha",
