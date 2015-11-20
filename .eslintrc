@@ -1,0 +1,7 @@
+{
+  "extends": "airbnb/base",
+  "rules": {
+    "indent": 0
+  },
+  "root": true
+}

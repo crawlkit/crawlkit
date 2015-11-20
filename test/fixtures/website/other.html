@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <script>
+            function init() {
+                window.setTimeout(function() {
+                    var a = document.createElement('a');
+                    a.textContent = 'dynamically generated';
+                    a.setAttribute('href','ajax.html');
+                    document.body.appendChild(a);
+                }, 1000);
+            }
+        </script>
+    </head>
+    <body onload="init()">
+    </body>
+</html>

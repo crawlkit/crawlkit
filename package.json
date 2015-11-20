@@ -1,0 +1,34 @@
+{
+  "name": "crawlkit",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha",
+    "tdd": "mocha --watch --reporter min",
+    "test.server": "http-server test/fixtures/website/"
+  },
+  "files": [
+    "index.js",
+    "finders"
+  ],
+  "author": "Joscha Feth <joscha@feth.com>",
+  "license": "MIT",
+  "dependencies": {
+    "async": "^1.5.0",
+    "debug": "^2.2.0",
+    "generic-pool": "^2.2.1",
+    "node-phantom-simple": "^2.1.1",
+    "phantomjs": "^1.9.18",
+    "urijs": "^1.17.0"
+  },
+  "devDependencies": {
+    "chai": "^3.4.1",
+    "chai-as-promised": "^5.1.0",
+    "eslint": "^1.9.0",
+    "eslint-config-airbnb": "^1.0.0",
+    "freeport": "^1.0.5",
+    "http-server": "^0.8.5",
+    "mocha": "^2.3.4"
+  }
+}
