@@ -18,6 +18,14 @@ function noneFinder() {
 }
 
 class Crawler {
+function transformMapToObject(map) {
+    const result = {};
+    map.forEach((value, key) => {
+        result[key] = value;
+    });
+    return result;
+}
+
     constructor(url, options) {
         const opts = options || {};
         this.url = url;
@@ -147,22 +155,15 @@ class Crawler {
                 });
             }, self.concurrency);
 
-            function transformMapToObject(map) {
-                const result = {
-                    results: {},
-                };
-                map.forEach((value, key) => {
-                    result.results[key] = value;
-                });
-                return result;
-            }
-
             q.drain = () => {
                 info(`Processed ${seen.size} discovered URLs.`);
                 pool.drain(function drainPool() {
                     pool.destroyAllNow();
                 });
-                resolve(transformMapToObject(seen));
+                const result = {
+                    results: transformMapToObject(seen),
+                };
+                resolve(result);
             };
 
             addUrl = (u) => {
