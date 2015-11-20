@@ -71,77 +71,79 @@ class Crawler {
         return new Promise(function workOnPage(resolve) {
             let addUrl;
             const seen = new Map();
-            const q = async.queue(function queueWorker(task, callback) {
+            const q = async.queue(function queueWorker(task, workerFinished) {
                 debug('worker started on task', task);
-                pool.acquire(function acquireBrowserFromPool(poolError, browser) {
-                    function done(err) {
-                        if (err) {
-                            error(err);
-                            task.result.error = err;
-                        }
-                        pool.release(browser);
-                        callback(err);
-                    }
 
-                    debug(`acquired phantom from pool for ${task.url}`);
-                    if (poolError) {
-                        done(poolError);
-                        return;
-                    }
-
-                    browser.createPage(function pageCreated(pageCreatedError, page) {
-                        debug(`page for ${task.url} created`);
-                        if (pageCreatedError) {
-                            done(pageCreatedError);
-                            return;
-                        }
-                        page.open(task.url, function pageOpened(pageOpenedError, status) {
-                            debug(`page for ${task.url} opened`);
-                            if (pageOpenedError) {
-                                done(pageOpenedError);
-                                return;
+                async.waterfall([
+                    function acquireBrowserFromPool(done) {
+                        pool.acquire((err, browser) => {
+                            const scope = {browser};
+                            if (err) {
+                                return done(err, scope);
                             }
-
-
+                            debug(`acquired phantom from pool for ${task.url}`);
+                            done(null, scope);
+                        });
+                    },
+                    function createPage(scope, done) {
+                        scope.browser.createPage((err, page) => {
+                            if (err) {
+                                return done(err, scope);
+                            }
+                            debug(`page for ${task.url} created`);
+                            scope.page = page;
+                            done(null, scope);
+                        });
+                    },
+                    function openPage(scope, done) {
+                        scope.page.open(task.url, (err, status) => {
+                            if (err) {
+                                return done(err, scope);
+                            }
                             if (status === 'fail') {
                                 const message = `Failed to open ${task.url}`;
-                                done(message);
-                                return;
+                                return done(message, scope);
                             }
-                            debug(`Opened ${task.url}`);
-
-                            function evaluate() {
-                                return page.evaluate(finder, function evaluatePage(evaluatePageError, urls) {
-                                    debug(`finder code for ${task.url} evaluated`);
-                                    if (evaluatePageError) {
-                                        page.close();
-                                        done(evaluatePageError);
-                                        return;
-                                    }
-                                    if (urls instanceof Array) {
-                                        urls.forEach(function addUrlToQueue(url) {
-                                            try {
-                                                const uri = new URI(url);
-                                                addUrl(uri.absoluteTo(new URI(task.url)));
-                                            } catch (e) {
-                                                error(`${url} is not a valid URL`);
-                                            }
-                                        });
-                                    } else {
-                                        error('Given finder returned non-Array value');
-                                    }
-
-                                    page.close();
-                                    done();
-                                });
-                            }
-                            if (self.timeout) {
-                                setTimeout(evaluate, self.timeout);
-                            } else {
-                                evaluate();
-                            }
+                            debug(`page for ${task.url} opened`);
+                            done(null, scope);
                         });
-                    });
+                    },
+                    function findLinks(scope, done) {
+                        setTimeout(function evaluate() {
+                            scope.page.evaluate(finder, (err, urls) => {
+                                if (err) {
+                                    return done(err, scope);
+                                }
+                                debug(`finder code for ${task.url} evaluated`);
+
+                                if (urls instanceof Array) {
+                                    urls.forEach((url) => {
+                                        try {
+                                            const uri = new URI(url);
+                                            addUrl(uri.absoluteTo(new URI(task.url)));
+                                        } catch (e) {
+                                            error(`${url} is not a valid URL`);
+                                        }
+                                    });
+                                } else {
+                                    error('Given finder returned non-Array value');
+                                }
+                                done(null, scope);
+                            });
+                        }, self.timeout);
+                    },
+                ], (err, scope) => {
+                    if (err) {
+                        error(err);
+                        task.result.error = err;
+                    }
+                    if (scope.page) {
+                        scope.page.close();
+                    }
+                    if (scope.browser) {
+                        pool.release(scope.browser);
+                    }
+                    workerFinished(err);
                 });
             }, self.concurrency);
 
