@@ -53,7 +53,7 @@ class CrawlKit {
         return this._url;
     }
 
-    crawl(finderFn) {
+    crawl(finderFn, runners) {
         const finder = (typeof finderFn === 'function') ? finderFn : noneFinder;
         const self = this;
         const pool = poolModule.Pool({ // eslint-disable-line
@@ -137,6 +137,37 @@ class CrawlKit {
                                 done(null, scope);
                             });
                         }, self.timeout);
+                    },
+                    function run(scope, done) {
+                        const runnerIds = Object.keys(runners || {});
+                        if (runnerIds.length) {
+                            const results = task.result.runners = {};
+                            const nextRunner = () => {
+                                const runnerId = runnerIds.shift();
+                                scope.page.onCallback = function phantomCallback(err, result) {
+                                    results[runnerId] = {};
+                                    if (err) {
+                                        results[runnerId].error = err;
+                                        error(`Runner '${runnerId}' errored: ${err}`);
+                                    } else {
+                                        results[runnerId].result = result;
+                                        debug(`Runner '${runnerId}' result: ${result}`);
+                                    }
+                                    if (Object.keys(results).length === Object.keys(runners).length) {
+                                        return done(null, scope);
+                                    }
+                                    if (runnerIds.length) {
+                                        nextRunner();
+                                    }
+                                };
+                                info(`Starting runner '${runnerId}'`);
+                                scope.page.evaluate(runners[runnerId]);
+                            };
+                            nextRunner();
+                        } else {
+                            debug('No runners given');
+                            done(null, scope);
+                        }
                     },
                 ], (err, scope) => {
                     if (err) {

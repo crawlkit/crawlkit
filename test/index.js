@@ -128,5 +128,29 @@ describe('crawler', function main() {
 
             return crawler.crawl(genericLinkFinder).should.eventually.deep.equal({results});
         });
+
+        describe('runners', () => {
+            it('should be possible to run runners', () => {
+                const runners = {
+                    a: function a() { window.callPhantom(null, 'a'); },
+                    b: function b() { window.callPhantom('b', null); },
+                };
+
+                const crawler = new CrawlKit(url);
+
+                const results = {};
+                results[`${url}/`] = {
+                    runners: {
+                        a: {
+                            result: 'a',
+                        },
+                        b: {
+                            error: 'b',
+                        },
+                    },
+                };
+                return crawler.crawl(null, runners).should.eventually.deep.equal({results});
+            });
+        });
     });
 });
