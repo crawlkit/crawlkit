@@ -11,7 +11,7 @@ const genericLinkFinder = require('../finders/genericAnchors.js');
 chai.should();
 chai.use(chaiAsPromised);
 
-describe('crawler', function main() {
+describe('CrawlKit', function main() {
     this.timeout(5 * 60 * 1000); // crawling can take a while
     let server;
     let url;
@@ -108,49 +108,49 @@ describe('crawler', function main() {
                 throw new Error('Some arbitrary error');
             }).should.eventually.deep.equal({results});
         });
+    });
 
-        it('should fall back to http', () => {
-            const crawler = new CrawlKit(`//${host}:${port}`);
-            return crawler.crawl().should.be.fulfilled;
-        });
+    it('should fall back to http', () => {
+        const crawler = new CrawlKit(`//${host}:${port}`);
+        return crawler.crawl().should.be.fulfilled;
+    });
 
-        it('should not fail on dead links', () => {
-            const crawler = new CrawlKit(`${url}/deadlinks.html`);
+    it('should not fail on dead links', () => {
+        const crawler = new CrawlKit(`${url}/deadlinks.html`);
+
+        const results = {};
+        results[`${url}/deadlinks.html`] = {};
+        results[`${url}/nonexistent.html`] = {
+            error: `Failed to open ${url}/nonexistent.html`,
+        };
+        results[`${url}/404.html`] = {
+            error: `Failed to open ${url}/404.html`,
+        };
+
+        return crawler.crawl(genericLinkFinder).should.eventually.deep.equal({results});
+    });
+
+    describe('runners', () => {
+        it('should be possible to use', () => {
+            const runners = {
+                a: function a() { window.callPhantom(null, 'a'); },
+                b: function b() { window.callPhantom('b', null); },
+            };
+
+            const crawler = new CrawlKit(url);
 
             const results = {};
-            results[`${url}/deadlinks.html`] = {};
-            results[`${url}/nonexistent.html`] = {
-                error: `Failed to open ${url}/nonexistent.html`,
-            };
-            results[`${url}/404.html`] = {
-                error: `Failed to open ${url}/404.html`,
-            };
-
-            return crawler.crawl(genericLinkFinder).should.eventually.deep.equal({results});
-        });
-
-        describe('runners', () => {
-            it('should be possible to run runners', () => {
-                const runners = {
-                    a: function a() { window.callPhantom(null, 'a'); },
-                    b: function b() { window.callPhantom('b', null); },
-                };
-
-                const crawler = new CrawlKit(url);
-
-                const results = {};
-                results[`${url}/`] = {
-                    runners: {
-                        a: {
-                            result: 'a',
-                        },
-                        b: {
-                            error: 'b',
-                        },
+            results[`${url}/`] = {
+                runners: {
+                    a: {
+                        result: 'a',
                     },
-                };
-                return crawler.crawl(null, runners).should.eventually.deep.equal({results});
-            });
+                    b: {
+                        error: 'b',
+                    },
+                },
+            };
+            return crawler.crawl(null, runners).should.eventually.deep.equal({results});
         });
     });
 });
