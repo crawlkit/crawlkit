@@ -17,7 +17,6 @@ function noneFinder() {
     return [];
 }
 
-class Crawler {
 function transformMapToObject(map) {
     const result = {};
     map.forEach((value, key) => {
@@ -26,6 +25,7 @@ function transformMapToObject(map) {
     return result;
 }
 
+class CrawlKit {
     constructor(url, options) {
         const opts = options || {};
         this.url = url;
@@ -190,4 +190,4 @@ function transformMapToObject(map) {
     }
 }
 
-module.exports = Crawler;
+module.exports = CrawlKit;

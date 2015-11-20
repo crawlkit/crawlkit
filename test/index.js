@@ -5,7 +5,7 @@ const httpServer = require('http-server');
 const path = require('path');
 const freeport = require('freeport');
 const pkg = require(path.join(__dirname, '..', 'package.json'));
-const Crawler = require(path.join(__dirname, '..', pkg.main));
+const CrawlKit = require(path.join(__dirname, '..', pkg.main));
 const genericLinkFinder = require('../finders/genericAnchors.js');
 
 chai.should();
@@ -40,14 +40,14 @@ describe('crawler', function main() {
 
     describe('should be able to crawl', () => {
         it('a website', () => {
-            const crawler = new Crawler(url);
+            const crawler = new CrawlKit(url);
             const results = {};
             results[`${url}/`] = {};
             return crawler.crawl().should.eventually.deep.equal({results});
         });
 
         it('a website with a custom finder', () => {
-            const crawler = new Crawler(url);
+            const crawler = new CrawlKit(url);
 
             const results = {};
             results[`${url}/`] = {};
@@ -56,7 +56,7 @@ describe('crawler', function main() {
             return crawler.crawl(genericLinkFinder).should.eventually.deep.equal({results});
         });
         it('a website and discover dynamic links', () => {
-            const crawler = new Crawler(`${url}/other.html`, {
+            const crawler = new CrawlKit(`${url}/other.html`, {
                 timeout: 2000,
             });
 
@@ -68,7 +68,7 @@ describe('crawler', function main() {
         });
 
         it('with multiple finders', () => {
-            const crawler = new Crawler(url);
+            const crawler = new CrawlKit(url);
 
             const results1 = {};
             results1[`${url}/`] = {};
@@ -88,7 +88,7 @@ describe('crawler', function main() {
         });
 
         it('with an incorrect finder return value', () => {
-            const crawler = new Crawler(url);
+            const crawler = new CrawlKit(url);
 
             const results = {};
             results[`${url}/`] = {};
@@ -99,7 +99,7 @@ describe('crawler', function main() {
         });
 
         it('with an erroneous finder', () => {
-            const crawler = new Crawler(url);
+            const crawler = new CrawlKit(url);
 
             const results = {};
             results[`${url}/`] = {};
@@ -110,12 +110,12 @@ describe('crawler', function main() {
         });
 
         it('should fall back to http', () => {
-            const crawler = new Crawler(`//${host}:${port}`);
+            const crawler = new CrawlKit(`//${host}:${port}`);
             return crawler.crawl().should.be.fulfilled;
         });
 
         it('should not fail on dead links', () => {
-            const crawler = new Crawler(`${url}/deadlinks.html`);
+            const crawler = new CrawlKit(`${url}/deadlinks.html`);
 
             const results = {};
             results[`${url}/deadlinks.html`] = {};
