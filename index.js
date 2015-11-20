@@ -53,8 +53,10 @@ class CrawlKit {
         return this._url;
     }
 
-    crawl(finderFn, runners) {
+    crawl(finderFn, runnerMap) {
+        const runners = (typeof runnerMap === 'object') ? runnerMap : {};
         const finder = (typeof finderFn === 'function') ? finderFn : noneFinder;
+
         const self = this;
         const pool = poolModule.Pool({ // eslint-disable-line
             name: 'phantomjs',
@@ -139,7 +141,7 @@ class CrawlKit {
                         }, self.timeout);
                     },
                     function run(scope, done) {
-                        const runnerIds = Object.keys(runners || {});
+                        const runnerIds = Object.keys(runners);
                         if (runnerIds.length) {
                             const results = task.result.runners = {};
                             const nextRunner = () => {
