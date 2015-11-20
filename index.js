@@ -9,8 +9,8 @@ const poolModule = require('generic-pool');
 const debug = d('crawler:debug');
 const info = d('crawler:info');
 const error = d('crawler:error');
-const debugPool = d('crawler:debug:pool');
 const noneFinder = require('./finders/none.js');
+const poolDebug = {};
 
 function transformMapToObject(map) {
     const result = {};
@@ -68,7 +68,10 @@ class CrawlKit {
             },
             max: this.concurrency,
             min: 1,
-            log: debugPool,
+            log: (message, level) => {
+                poolDebug[level] = poolDebug[level] || d(`pool:${level}`);
+                poolDebug[level](message);
+            },
         });
 
         return new Promise(function workOnPage(resolve) {
