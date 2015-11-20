@@ -10,12 +10,7 @@ const debug = d('crawler:debug');
 const info = d('crawler:info');
 const error = d('crawler:error');
 const debugPool = d('crawler:debug:pool');
-
-// Attention: the following can not be written in short notation
-// as it has to run within Phantom
-function noneFinder() {
-    return [];
-}
+const noneFinder = require('./finders/none.js');
 
 function transformMapToObject(map) {
     const result = {};
