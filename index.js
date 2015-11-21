@@ -5,12 +5,17 @@ const async = require('async');
 const d = require('debug');
 const URI = require('urijs');
 const poolModule = require('generic-pool');
+const once = require('once');
 
 const debug = d('crawler:debug');
 const info = d('crawler:info');
 const error = d('crawler:error');
-const noneFinder = require('./finders/none.js');
 const poolDebug = {};
+
+const concurrencyKey = Symbol();
+const urlKey = Symbol();
+const finderKey = Symbol();
+const timeoutKey = Symbol();
 
 function transformMapToObject(map) {
     const result = {};
@@ -30,33 +35,39 @@ class CrawlKit {
     }
 
     set timeout(num) {
-        this._timeout = parseInt(num, 10);
+        this[timeoutKey] = parseInt(num, 10);
     }
 
     get timeout() {
-        return Math.max(0, this._timeout || 0);
+        return Math.max(0, this[timeoutKey] || 0);
     }
 
     set concurrency(num) {
-        this._concurrency = parseInt(num, 10);
+        this[concurrencyKey] = parseInt(num, 10);
     }
 
     get concurrency() {
-        return Math.max(1, this._concurrency || 1);
+        return Math.max(1, this[concurrencyKey] || 1);
     }
 
     set url(str) {
-        this._url = str;
+        this[urlKey] = str;
     }
 
     get url() {
-        return this._url;
+        return this[urlKey];
     }
 
-    crawl(finderFn, runnerMap) {
-        const runners = (typeof runnerMap === 'object') ? runnerMap : {};
-        const finder = (typeof finderFn === 'function') ? finderFn : noneFinder;
+    set finder(fn) {
+        this[finderKey] = (typeof fn === 'function') ? fn : null;
+    }
 
+    get finder() {
+        return this[finderKey];
+    }
+
+    crawl(runnerMap) {
+        const runners = (typeof runnerMap === 'object') ? runnerMap : {};
         const self = this;
         const pool = poolModule.Pool({ // eslint-disable-line
             name: 'phantomjs',
@@ -116,15 +127,19 @@ class CrawlKit {
                             done(null, scope);
                         });
                     },
-                    function findLinks(scope, done) {
+                    function findLinks(scope, cb) {
+                        const done = once(cb);
+                        if (!(typeof self.finder === 'function')) {
+                            return done(null, scope);
+                        }
+
                         setTimeout(function evaluate() {
-                            scope.page.evaluate(finder, (err, urls) => {
+                            scope.page.onCallback = function phantomCallback(err, urls) {
                                 if (err) {
                                     return done(err, scope);
                                 }
-                                debug(`finder code for ${task.url} evaluated`);
-
                                 if (urls instanceof Array) {
+                                    error(`Finder returned ${urls.length} URLs`);
                                     urls.forEach((url) => {
                                         try {
                                             const uri = new URI(url);
@@ -137,6 +152,12 @@ class CrawlKit {
                                     error('Given finder returned non-Array value');
                                 }
                                 done(null, scope);
+                            };
+                            scope.page.evaluate(self.finder, (err) => {
+                                if (err) {
+                                    return done(err, scope);
+                                }
+                                debug(`finder code for ${task.url} evaluated`);
                             });
                         }, self.timeout);
                     },

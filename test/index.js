@@ -53,7 +53,9 @@ describe('CrawlKit', function main() {
             results[`${url}/`] = {};
             results[`${url}/#somehash`] = {};
             results[`${url}/other.html`] = {};
-            return crawler.crawl(genericLinkFinder).should.eventually.deep.equal({results});
+
+            crawler.finder = genericLinkFinder;
+            return crawler.crawl().should.eventually.deep.equal({results});
         });
         it('a website and discover dynamic links', () => {
             const crawler = new CrawlKit(`${url}/other.html`, {
@@ -64,27 +66,8 @@ describe('CrawlKit', function main() {
             results[`${url}/other.html`] = {};
             results[`${url}/ajax.html`] = {};
 
-            return crawler.crawl(genericLinkFinder).should.eventually.deep.equal({results});
-        });
-
-        it('with multiple finders', () => {
-            const crawler = new CrawlKit(url);
-
-            const results1 = {};
-            results1[`${url}/`] = {};
-            results1[`${url}/#somehash`] = {};
-            results1[`${url}/other.html`] = {};
-
-            const results2 = {};
-            results2[`${url}/`] = {};
-            results2[`${url}/hidden.html`] = {};
-
-            return Promise.all([
-                crawler.crawl(genericLinkFinder),
-                crawler.crawl(function hiddenOnly() {
-                    return ['hidden.html'];
-                }),
-            ]).should.eventually.deep.equal([{results: results1}, {results: results2}]);
+            crawler.finder = genericLinkFinder;
+            return crawler.crawl().should.eventually.deep.equal({results});
         });
 
         it('with an incorrect finder return value', () => {
@@ -93,20 +76,34 @@ describe('CrawlKit', function main() {
             const results = {};
             results[`${url}/`] = {};
 
-            return crawler.crawl(function incorrectReturnFilter() {
-                return 'notAnArray';
-            }).should.eventually.deep.equal({results});
+            crawler.finder = function incorrectReturnFilter() {
+                window.callPhantom(null, 'notAnArray');
+            };
+            return crawler.crawl().should.eventually.deep.equal({results});
         });
 
         it('with an erroneous finder', () => {
             const crawler = new CrawlKit(url);
 
             const results = {};
-            results[`${url}/`] = {};
+            results[`${url}/`] = {
+                error: {
+                    message: 'Some arbitrary error',
+                },
+            };
+            crawler.finder = function erroneusFinder() {
+                window.callPhantom(new Error('Some arbitrary error'), null);
+            };
+            return crawler.crawl().should.eventually.deep.equal({results});
+        });
 
-            return crawler.crawl(function erroneusFinder() {
-                throw new Error('Some arbitrary error');
-            }).should.eventually.deep.equal({results});
+        it('with a finder never returning', () => {
+            const crawler = new CrawlKit(url);
+
+            const results = {};
+            results[`${url}/`] = {};
+            crawler.finder = function neverReturningFilter() {};
+            return crawler.crawl().should.eventually.deep.equal({results});
         });
     });
 
@@ -126,8 +123,8 @@ describe('CrawlKit', function main() {
         results[`${url}/404.html`] = {
             error: `Failed to open ${url}/404.html`,
         };
-
-        return crawler.crawl(genericLinkFinder).should.eventually.deep.equal({results});
+        crawler.finder = genericLinkFinder;
+        return crawler.crawl().should.eventually.deep.equal({results});
     });
 
     describe('runners', () => {
@@ -150,7 +147,7 @@ describe('CrawlKit', function main() {
                     },
                 },
             };
-            return crawler.crawl(null, runners).should.eventually.deep.equal({results});
+            return crawler.crawl(runners).should.eventually.deep.equal({results});
         });
     });
 });
