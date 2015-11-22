@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "mocha",
+    "lint": "eslint .",
     "tdd": "mocha --watch --reporter min",
     "test.server": "http-server test/fixtures/website/"
   },
