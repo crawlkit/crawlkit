@@ -27,11 +27,8 @@ function transformMapToObject(map) {
 }
 
 class CrawlKit {
-    constructor(url, options) {
-        const opts = options || {};
+    constructor(url) {
         this.url = url;
-        this.concurrency = opts.concurrency;
-        this.timeout = opts.timeout;
         this.defaultAbsoluteTo = 'http://';
         this[runnerKey] = new Map();
     }
