@@ -248,4 +248,24 @@ describe('CrawlKit', function main() {
             return crawler.crawl().should.eventually.deep.equal({results});
         });
     });
+
+    describe('settings', () => {
+        it('should be possible to set a page setting', () => {
+            const crawler = new CrawlKit(url);
+            crawler.phantomPageSettings = {
+                userAgent: 'Mickey Mouse',
+            };
+            crawler.addRunner('agent', function a() { window.callPhantom(null, navigator.userAgent); });
+
+            const results = {};
+            results[`${url}/`] = {
+                runners: {
+                    agent: {
+                        result: 'Mickey Mouse',
+                    },
+                },
+            };
+            return crawler.crawl().should.eventually.deep.equal({results});
+        });
+    });
 });

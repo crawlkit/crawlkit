@@ -19,6 +19,7 @@ const timeoutKey = Symbol();
 const runnerKey = Symbol();
 const urlFilterKey = Symbol();
 const phantomParamsKey = Symbol();
+const phantomPageSettingsKey = Symbol();
 
 function transformMapToObject(map) {
     const result = {};
@@ -145,6 +146,24 @@ class CrawlKit {
                             debug(`page for ${task.url} created`);
                             scope.page = page;
                             done(null, scope);
+                        });
+                    },
+                    function setPageSettings(scope, done) {
+                        Promise.all(Object.keys(self.phantomPageSettings).map((key) => {
+                            return new Promise((success, reject) => {
+                                debug(`setting settings.${key}`);
+                                scope.page.set(`settings.${key}`, self.phantomPageSettings[key], (settingErr) => {
+                                    if (settingErr) {
+                                        error(`setting settings.${key} failed`);
+                                        return reject(settingErr);
+                                    }
+                                    success();
+                                });
+                            });
+                        })).then(() => {
+                            done(null, scope);
+                        }, (settingErr) => {
+                            done(settingErr, scope);
                         });
                     },
                     function openPage(scope, done) {
