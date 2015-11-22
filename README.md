@@ -1,4 +1,4 @@
-# CrawlKit
+# CrawlKit [![Build Status](https://travis-ci.org/crawlkit/crawlkit.svg)](https://travis-ci.org/crawlkit/crawlkit)
 
 A crawler based on Phantom. Allows discovery of dynamic content and supports custom scrapers. For all your ajaxy crawling & scraping needs.
 
