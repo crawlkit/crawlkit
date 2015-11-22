@@ -17,6 +17,7 @@ const urlKey = Symbol();
 const finderKey = Symbol();
 const timeoutKey = Symbol();
 const runnerKey = Symbol();
+const urlFilterKey = Symbol();
 
 function transformMapToObject(map) {
     const result = {};
@@ -176,6 +177,9 @@ class CrawlKit {
                                     try {
                                         const uri = new URI(url);
                                         const absoluteUrl = uri.absoluteTo(new URI(task.url)).toString();
+                                        if (self.urlFilter && !self.urlFilter(absoluteUrl)) {
+                                            return;
+                                        }
                                         addUrl(absoluteUrl);
                                     } catch (e) {
                                         error(`${url} is not a valid URL`);

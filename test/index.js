@@ -152,6 +152,24 @@ describe('CrawlKit', function main() {
                 return crawler.crawl().should.eventually.deep.equal({results});
             });
         });
+
+        it('and filter the results', () => {
+            const crawler = new CrawlKit(url);
+
+            const results = {};
+            results[`${url}/`] = {};
+            results[`${url}/other.html`] = {};
+
+            crawler.finder = genericLinkFinder;
+
+            const spy = sinon.spy((u) => u.indexOf('somehash') === -1);
+            crawler.urlFilter = spy;
+
+            return crawler.crawl().then((result) => {
+                spy.callCount.should.equal(2);
+                return result.results;
+            }).should.eventually.deep.equal(results);
+        });
     });
 
     it('should fall back to http', () => {
