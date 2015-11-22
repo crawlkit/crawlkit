@@ -1,0 +1,18 @@
+const CrawlKit = require('../');
+const genericAnchors = require('../finders/genericAnchors');
+const urijs = require('urijs');
+
+const baseURL = 'http://www.feth.com';
+const crawler = new CrawlKit(baseURL);
+
+crawler.finder = genericAnchors;
+crawler.urlFilter = function onlySameDomain(url) {
+    return urijs(url).domain() === urijs(baseURL).domain();
+};
+crawler.addRunner('title', function extractTitle() {
+    window.callPhantom(null, document.title);
+});
+
+crawler.crawl().then((results) => {
+    console.log(JSON.stringify(results, true, 2));
+});

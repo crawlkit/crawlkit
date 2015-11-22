@@ -5,3 +5,5 @@ node_js:
 script:
   - npm run lint
   - npm test
+  - travis_retry node examples/advanced.js
+  - travis_retry node examples/simple.js
