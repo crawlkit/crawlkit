@@ -16,6 +16,7 @@ const concurrencyKey = Symbol();
 const urlKey = Symbol();
 const finderKey = Symbol();
 const timeoutKey = Symbol();
+const runnerKey = Symbol();
 
 function transformMapToObject(map) {
     const result = {};
@@ -32,6 +33,7 @@ class CrawlKit {
         this.concurrency = opts.concurrency;
         this.timeout = opts.timeout;
         this.defaultAbsoluteTo = 'http://';
+        this[runnerKey] = new Map();
     }
 
     set timeout(num) {
@@ -39,7 +41,7 @@ class CrawlKit {
     }
 
     get timeout() {
-        return Math.max(0, this[timeoutKey] || 0);
+        return Math.max(0, this[timeoutKey] || 10000);
     }
 
     set concurrency(num) {
@@ -66,8 +68,39 @@ class CrawlKit {
         return this[finderKey];
     }
 
-    crawl(runnerMap) {
-        const runners = (typeof runnerMap === 'object') ? runnerMap : {};
+    set urlFilter(fn) {
+        this[urlFilterKey] = (typeof fn === 'function') ? fn : null;
+    }
+
+    get urlFilter() {
+        return this[urlFilterKey];
+    }
+
+    addRunner(key, runnerFn) {
+        this[runnerKey].set(key, runnerFn);
+    }
+
+    getRunners() {
+        return this[runnerKey];
+    }
+
+    set phantomParameters(params) {
+        this[phantomParamsKey] = params;
+    }
+
+    get phantomParameters() {
+        return this[phantomParamsKey] || {};
+    }
+
+    set phantomPageSettings(settings) {
+        this[phantomPageSettingsKey] = settings;
+    }
+
+    get phantomPageSettings() {
+        return this[phantomPageSettingsKey] || {};
+    }
+
+    crawl() {
         const self = this;
         const pool = poolModule.Pool({ // eslint-disable-line
             name: 'phantomjs',
@@ -128,69 +161,93 @@ class CrawlKit {
                         });
                     },
                     function findLinks(scope, cb) {
-                        const done = once(cb);
-                        if (!(typeof self.finder === 'function')) {
-                            return done(null, scope);
+                        let timeoutHandler;
+                        const done = once((err) => {
+                            clearTimeout(timeoutHandler);
+                            cb(err, scope);
+                        });
+                        if (!self.finder) {
+                            return done();
                         }
-
-                        setTimeout(function evaluate() {
-                            scope.page.onCallback = function phantomCallback(err, urls) {
-                                if (err) {
-                                    return done(err, scope);
-                                }
-                                if (urls instanceof Array) {
-                                    error(`Finder returned ${urls.length} URLs`);
-                                    urls.forEach((url) => {
-                                        try {
-                                            const uri = new URI(url);
-                                            addUrl(uri.absoluteTo(new URI(task.url)));
-                                        } catch (e) {
-                                            error(`${url} is not a valid URL`);
-                                        }
-                                    });
-                                } else {
-                                    error('Given finder returned non-Array value');
-                                }
-                                done(null, scope);
-                            };
-                            scope.page.evaluate(self.finder, (err) => {
-                                if (err) {
-                                    return done(err, scope);
-                                }
-                                debug(`finder code for ${task.url} evaluated`);
-                            });
+                        function phantomCallback(err, urls) {
+                            if (err) {
+                                return done(err);
+                            }
+                            if (urls instanceof Array) {
+                                error(`Finder returned ${urls.length} URLs`);
+                                urls.forEach((url) => {
+                                    try {
+                                        const uri = new URI(url);
+                                        const absoluteUrl = uri.absoluteTo(new URI(task.url)).toString();
+                                        addUrl(absoluteUrl);
+                                    } catch (e) {
+                                        error(`${url} is not a valid URL`);
+                                    }
+                                });
+                            } else {
+                                error('Given finder returned non-Array value');
+                            }
+                            done();
+                        }
+                        scope.page.onCallback = phantomCallback;
+                        scope.page.onError = phantomCallback;
+                        timeoutHandler = setTimeout(function timeout() {
+                            phantomCallback(`Finder timed out after ${self.timeout}ms.`, null);
                         }, self.timeout);
+                        scope.page.evaluate(self.finder, (err) => {
+                            if (err) {
+                                clearTimeout(timeoutHandler);
+                                return done(err);
+                            }
+                            debug(`finder code for ${task.url} evaluated`);
+                        });
                     },
-                    function run(scope, done) {
-                        const runnerIds = Object.keys(runners);
-                        if (runnerIds.length) {
-                            const results = task.result.runners = {};
-                            const nextRunner = () => {
-                                const runnerId = runnerIds.shift();
-                                scope.page.onCallback = function phantomCallback(err, result) {
-                                    results[runnerId] = {};
-                                    if (err) {
-                                        results[runnerId].error = err;
-                                        error(`Runner '${runnerId}' errored: ${err}`);
-                                    } else {
-                                        results[runnerId].result = result;
-                                        debug(`Runner '${runnerId}' result: ${result}`);
-                                    }
-                                    if (Object.keys(results).length === Object.keys(runners).length) {
-                                        return done(null, scope);
-                                    }
-                                    if (runnerIds.length) {
-                                        nextRunner();
-                                    }
-                                };
-                                info(`Starting runner '${runnerId}'`);
-                                scope.page.evaluate(runners[runnerId]);
-                            };
-                            nextRunner();
-                        } else {
-                            debug('No runners given');
-                            done(null, scope);
+                    function pageRunners(scope, cb) {
+                        const done = once((err) => {
+                            cb(err, scope);
+                        });
+
+                        if (self.getRunners().size === 0) {
+                            debug('No runners defined');
+                            return done();
                         }
+                        const runnerIterator = self.getRunners()[Symbol.iterator]();
+                        const results = task.result.runners = {};
+                        const nextRunner = () => {
+                            const next = runnerIterator.next();
+                            if (next.done) {
+                                return done();
+                            }
+                            let timeoutHandler;
+                            const runnerId = next.value[0];
+                            const runnerCode = next.value[1];
+                            const phantomCallback = (err, result) => {
+                                clearTimeout(timeoutHandler);
+                                results[runnerId] = {};
+                                if (err) {
+                                    results[runnerId].error = err;
+                                    error(`Runner '${runnerId}' errored: ${err}`);
+                                } else {
+                                    results[runnerId].result = result;
+                                    debug(`Runner '${runnerId}' result: ${result}`);
+                                }
+                                nextRunner();
+                            };
+                            scope.page.onCallback = phantomCallback;
+                            scope.page.onError = phantomCallback;
+                            info(`Starting runner '${runnerId}'`);
+                            timeoutHandler = setTimeout(function timeout() {
+                                phantomCallback(`Runner '${runnerId}' timed out after ${self.timeout}ms.`, null);
+                            }, self.timeout);
+                            scope.page.evaluate(runnerCode, (err) => {
+                                if (err) {
+                                    clearTimeout(timeoutHandler);
+                                    return done(err);
+                                }
+                                debug(`Runner '${runnerId}' evaluated`);
+                            });
+                        };
+                        nextRunner();
                     },
                 ], (err, scope) => {
                     if (err) {

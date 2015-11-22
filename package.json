@@ -31,6 +31,8 @@
     "eslint-config-airbnb": "^1.0.0",
     "freeport": "^1.0.5",
     "http-server": "^0.8.5",
-    "mocha": "^2.3.4"
+    "mocha": "^2.3.4",
+    "sinon": "^1.17.2",
+    "sinon-chai": "^2.8.0"
   }
 }

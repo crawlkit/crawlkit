@@ -1,6 +1,8 @@
 'use strict'; // eslint-disable-line
 const chai = require('chai');
 const chaiAsPromised = require('chai-as-promised');
+const sinon = require('sinon');
+const sinonChai = require('sinon-chai');
 const httpServer = require('http-server');
 const path = require('path');
 const freeport = require('freeport');
@@ -10,6 +12,7 @@ const genericLinkFinder = require('../finders/genericAnchors.js');
 
 chai.should();
 chai.use(chaiAsPromised);
+chai.use(sinonChai);
 
 describe('CrawlKit', function main() {
     this.timeout(5 * 60 * 1000); // crawling can take a while
@@ -46,64 +49,108 @@ describe('CrawlKit', function main() {
             return crawler.crawl().should.eventually.deep.equal({results});
         });
 
-        it('a website with a custom finder', () => {
-            const crawler = new CrawlKit(url);
+        describe('with a finder', () => {
+            it('that is custom', () => {
+                const crawler = new CrawlKit(url);
 
-            const results = {};
-            results[`${url}/`] = {};
-            results[`${url}/#somehash`] = {};
-            results[`${url}/other.html`] = {};
+                const results = {};
+                results[`${url}/`] = {};
+                results[`${url}/#somehash`] = {};
+                results[`${url}/other.html`] = {};
 
-            crawler.finder = genericLinkFinder;
-            return crawler.crawl().should.eventually.deep.equal({results});
-        });
-        it('a website and discover dynamic links', () => {
-            const crawler = new CrawlKit(`${url}/other.html`, {
-                timeout: 2000,
+                crawler.finder = genericLinkFinder;
+                return crawler.crawl().should.eventually.deep.equal({results});
             });
 
-            const results = {};
-            results[`${url}/other.html`] = {};
-            results[`${url}/ajax.html`] = {};
+            it('that is async', () => {
+                const crawler = new CrawlKit(`${url}/other.html`);
 
-            crawler.finder = genericLinkFinder;
-            return crawler.crawl().should.eventually.deep.equal({results});
-        });
+                const results = {};
+                results[`${url}/other.html`] = {};
+                results[`${url}/ajax.html`] = {};
 
-        it('with an incorrect finder return value', () => {
-            const crawler = new CrawlKit(url);
 
-            const results = {};
-            results[`${url}/`] = {};
+                crawler.finder = function delayedFinder() {
+                    /*eslint-disable */
+                    window.setTimeout(function findLinks() {
+                        var urls = Array.prototype.slice.call(document.querySelectorAll('a')).map(function extractHref(a) {
+                            return a.getAttribute('href');
+                        });
+                        window.callPhantom(null, urls);
+                    }, 2000);
+                    /*eslint-enable */
+                };
 
-            crawler.finder = function incorrectReturnFilter() {
-                window.callPhantom(null, 'notAnArray');
-            };
-            return crawler.crawl().should.eventually.deep.equal({results});
-        });
+                return crawler.crawl().should.eventually.deep.equal({results});
+            });
 
-        it('with an erroneous finder', () => {
-            const crawler = new CrawlKit(url);
+            it('that has an incorrect return value', () => {
+                const crawler = new CrawlKit(url);
 
-            const results = {};
-            results[`${url}/`] = {
-                error: {
-                    message: 'Some arbitrary error',
-                },
-            };
-            crawler.finder = function erroneusFinder() {
-                window.callPhantom(new Error('Some arbitrary error'), null);
-            };
-            return crawler.crawl().should.eventually.deep.equal({results});
-        });
+                const results = {};
+                results[`${url}/`] = {};
 
-        it('with a finder never returning', () => {
-            const crawler = new CrawlKit(url);
+                crawler.finder = function incorrectReturnFilter() {
+                    window.callPhantom(null, 'notAnArray');
+                };
+                return crawler.crawl().should.eventually.deep.equal({results});
+            });
 
-            const results = {};
-            results[`${url}/`] = {};
-            crawler.finder = function neverReturningFilter() {};
-            return crawler.crawl().should.eventually.deep.equal({results});
+            it('that doesn\'t return URLs', () => {
+                const crawler = new CrawlKit(url);
+
+                const results = {};
+                results[`${url}/`] = {};
+                results[`${url}/other.html`] = {};
+                results[`${url}/hidden.html`] = {};
+
+                crawler.finder = function incorrectReturnFilter() {
+                    window.callPhantom(null, [
+                        'other.html',
+                        null,
+                        'hidden.html',
+                    ]);
+                };
+                return crawler.crawl().should.eventually.deep.equal({results});
+            });
+
+            it('that is erroneous', () => {
+                const crawler = new CrawlKit(url);
+
+                const results = {};
+                results[`${url}/`] = {
+                    error: 'Some arbitrary error',
+                };
+                crawler.finder = function erroneusFinder() {
+                    window.callPhantom('Some arbitrary error', null);
+                };
+                return crawler.crawl().should.eventually.deep.equal({results});
+            });
+
+            it('that throws an exception', () => {
+                const crawler = new CrawlKit(url);
+
+                const results = {};
+                results[`${url}/`] = {
+                    error: 'Error: Some thrown error',
+                };
+                crawler.finder = function erroneusFinder() {
+                    throw new Error('Some thrown error');
+                };
+                return crawler.crawl().should.eventually.deep.equal({results});
+            });
+
+            it('that never returns', () => {
+                const crawler = new CrawlKit(url);
+
+                const results = {};
+                results[`${url}/`] = {
+                    error: 'Finder timed out after 1000ms.',
+                };
+                crawler.timeout = 1000;
+                crawler.finder = function neverReturningFilter() {};
+                return crawler.crawl().should.eventually.deep.equal({results});
+            });
         });
     });
 
@@ -129,12 +176,10 @@ describe('CrawlKit', function main() {
 
     describe('runners', () => {
         it('should be possible to use', () => {
-            const runners = {
-                a: function a() { window.callPhantom(null, 'a'); },
-                b: function b() { window.callPhantom('b', null); },
-            };
-
             const crawler = new CrawlKit(url);
+
+            crawler.addRunner('a', function a() { window.callPhantom(null, 'a'); });
+            crawler.addRunner('b', function b() { window.callPhantom('b', null); });
 
             const results = {};
             results[`${url}/`] = {
@@ -147,7 +192,42 @@ describe('CrawlKit', function main() {
                     },
                 },
             };
-            return crawler.crawl(runners).should.eventually.deep.equal({results});
+            return crawler.crawl().should.eventually.deep.equal({results});
+        });
+
+        it('should be able to run async', () => {
+            const crawler = new CrawlKit(url);
+            crawler.addRunner('async', function delayedRunner() {
+                window.setTimeout(function delayedCallback() {
+                    window.callPhantom(null, 'success');
+                }, 2000);
+            });
+
+            const results = {};
+            results[`${url}/`] = {
+                runners: {
+                    async: {
+                        result: 'success',
+                    },
+                },
+            };
+            return crawler.crawl().should.eventually.deep.equal({results});
+        });
+
+        it('should time out', () => {
+            const crawler = new CrawlKit(url);
+            crawler.timeout = 1000;
+            crawler.addRunner('x', function noop() {});
+
+            const results = {};
+            results[`${url}/`] = {
+                runners: {
+                    x: {
+                        error: `Runner 'x' timed out after 1000ms.`,
+                    },
+                },
+            };
+            return crawler.crawl().should.eventually.deep.equal({results});
         });
     });
 });
