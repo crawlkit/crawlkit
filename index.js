@@ -18,6 +18,7 @@ const finderKey = Symbol();
 const timeoutKey = Symbol();
 const runnerKey = Symbol();
 const urlFilterKey = Symbol();
+const phantomParamsKey = Symbol();
 
 function transformMapToObject(map) {
     const result = {};
@@ -105,6 +106,7 @@ class CrawlKit {
             create: function createPhantom(callback) {
                 driver.create({
                     path: phantomjs.path,
+                    parameters: self.phantomParameters,
                 }, callback);
             },
             destroy: function destroyPhantom(browser) {
