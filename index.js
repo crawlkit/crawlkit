@@ -76,8 +76,11 @@ class CrawlKit {
         return this[urlFilterKey];
     }
 
-    addRunner(key, runnerFn) {
-        this[runnerKey].set(key, runnerFn);
+    addRunner(key, runner) {
+        if (typeof runner.getCompanionFiles !== 'function' || typeof runner.getRunnable !== 'function') {
+            throw new Error('Not a valid runner instance');
+        }
+        this[runnerKey].set(key, runner);
     }
 
     getRunners() {
@@ -242,32 +245,45 @@ class CrawlKit {
                             }
                             let timeoutHandler;
                             const runnerId = next.value[0];
-                            const runnerCode = next.value[1];
-                            const phantomCallback = (err, result) => {
-                                clearTimeout(timeoutHandler);
-                                results[runnerId] = {};
-                                if (err) {
-                                    results[runnerId].error = err;
-                                    error(`Runner '${runnerId}' errored: ${err}`);
-                                } else {
-                                    results[runnerId].result = result;
-                                    debug(`Runner '${runnerId}' result: ${result}`);
-                                }
-                                nextRunner();
-                            };
-                            scope.page.onCallback = phantomCallback;
-                            scope.page.onError = phantomCallback;
-                            info(`Starting runner '${runnerId}'`);
-                            timeoutHandler = setTimeout(function timeout() {
-                                phantomCallback(`Runner '${runnerId}' timed out after ${self.timeout}ms.`, null);
-                            }, self.timeout);
-                            scope.page.evaluate(runnerCode, (err) => {
-                                if (err) {
+                            const runner = next.value[1];
+                            Promise.all([runner.getCompanionFiles() || []].map((filename) => {
+                                return new Promise((injected, reject) => {
+                                    scope.page.injectJs(filename, (err) => {
+                                        if (err) {
+                                            error(`Failed to inject companion file '${filename}' for runner '${runnerId}'.`);
+                                            return reject(err);
+                                        }
+                                        debug(`Injected companion file '${filename}' for runner '${runnerId}'.`);
+                                        injected();
+                                    });
+                                });
+                            })).then(function run() {
+                                const phantomCallback = (err, result) => {
                                     clearTimeout(timeoutHandler);
-                                    return done(err);
-                                }
-                                debug(`Runner '${runnerId}' evaluated`);
-                            });
+                                    results[runnerId] = {};
+                                    if (err) {
+                                        results[runnerId].error = err;
+                                        error(`Runner '${runnerId}' errored: ${err}`);
+                                    } else {
+                                        results[runnerId].result = result;
+                                        debug(`Runner '${runnerId}' result: ${result}`);
+                                    }
+                                    nextRunner();
+                                };
+                                scope.page.onCallback = phantomCallback;
+                                scope.page.onError = phantomCallback;
+                                info(`Starting runner '${runnerId}'`);
+                                timeoutHandler = setTimeout(function timeout() {
+                                    phantomCallback(`Runner '${runnerId}' timed out after ${self.timeout}ms.`, null);
+                                }, self.timeout);
+                                scope.page.evaluate(runner.getRunnable(), (err) => {
+                                    if (err) {
+                                        clearTimeout(timeoutHandler);
+                                        return done(err);
+                                    }
+                                    debug(`Runner '${runnerId}' evaluated`);
+                                });
+                            }, done);
                         };
                         nextRunner();
                     },

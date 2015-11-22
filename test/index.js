@@ -196,8 +196,14 @@ describe('CrawlKit', function main() {
         it('should be possible to use', () => {
             const crawler = new CrawlKit(url);
 
-            crawler.addRunner('a', function a() { window.callPhantom(null, 'a'); });
-            crawler.addRunner('b', function b() { window.callPhantom('b', null); });
+            crawler.addRunner('a', {
+                getCompanionFiles: () => [],
+                getRunnable: () => function a() { window.callPhantom(null, 'a'); },
+            });
+            crawler.addRunner('b', {
+                getCompanionFiles: () => [],
+                getRunnable: () => function b() { window.callPhantom('b', null); },
+            });
 
             const results = {};
             results[`${url}/`] = {
@@ -215,10 +221,15 @@ describe('CrawlKit', function main() {
 
         it('should be able to run async', () => {
             const crawler = new CrawlKit(url);
-            crawler.addRunner('async', function delayedRunner() {
-                window.setTimeout(function delayedCallback() {
-                    window.callPhantom(null, 'success');
-                }, 2000);
+            crawler.addRunner('async', {
+                getCompanionFiles: () => [],
+                getRunnable: () => {
+                    return function delayedRunner() {
+                        window.setTimeout(function delayedCallback() {
+                            window.callPhantom(null, 'success');
+                        }, 2000);
+                    };
+                },
             });
 
             const results = {};
@@ -232,10 +243,37 @@ describe('CrawlKit', function main() {
             return crawler.crawl().should.eventually.deep.equal({results});
         });
 
+        it('should load companion files', () => {
+            const crawler = new CrawlKit(url);
+            crawler.addRunner('companion', {
+                getCompanionFiles: () => [
+                    path.join(__dirname, 'fixtures/companion.js'),
+                ],
+                getRunnable: () => {
+                    return function callingGlobalRunner() {
+                        window.companion();
+                    };
+                },
+            });
+
+            const results = {};
+            results[`${url}/`] = {
+                runners: {
+                    companion: {
+                        result: 'success',
+                    },
+                },
+            };
+            return crawler.crawl().should.eventually.deep.equal({results});
+        });
+
         it('should time out', () => {
             const crawler = new CrawlKit(url);
             crawler.timeout = 1000;
-            crawler.addRunner('x', function noop() {});
+            crawler.addRunner('x', {
+                getCompanionFiles: () => [],
+                getRunnable: () => function noop() {},
+            });
 
             const results = {};
             results[`${url}/`] = {
@@ -255,7 +293,14 @@ describe('CrawlKit', function main() {
             crawler.phantomPageSettings = {
                 userAgent: 'Mickey Mouse',
             };
-            crawler.addRunner('agent', function a() { window.callPhantom(null, navigator.userAgent); });
+            crawler.addRunner('agent', {
+                getCompanionFiles: () => [],
+                getRunnable: () => {
+                    return function userAgentRunner() {
+                        window.callPhantom(null, navigator.userAgent);
+                    };
+                },
+            });
 
             const results = {};
             results[`${url}/`] = {
