@@ -15,7 +15,7 @@ const crawler = new CrawlKit('http://your/page');
 crawler.finder = anchorFinder;
 crawler.crawl()
     .then((data) => {
-        console.log(data.results);
+        console.log(JSON.stringify(data.results, true, 2));
     });
 ```
 
