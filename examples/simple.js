@@ -1,3 +1,4 @@
+'use strict';
 const CrawlKit = require('../');
 
 const baseURL = 'https://www.google.com';
