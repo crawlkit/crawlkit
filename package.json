@@ -3,6 +3,7 @@
   "version": "1.1.1",
   "description": "A crawler based on Phantom. Allows discovery of dynamic content and supports custom scrapers.",
   "main": "index.js",
+  "repository": "https://github.com/crawlkit/crawlkit.git",
   "scripts": {
     "test": "mocha",
     "lint": "eslint .",
@@ -35,7 +36,7 @@
     "sinon": "^1.17.2",
     "sinon-chai": "^2.8.0"
   },
-  "engines" : {
-    "node" : ">=4.2"
+  "engines": {
+    "node": ">=4.2"
   }
 }
