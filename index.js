@@ -126,6 +126,8 @@ class CrawlKit {
 
     crawl() {
         const self = this;
+
+        info(`Starting to crawl. Concurrency is %s`, self.concurrency);
         const pool = poolModule.Pool({ // eslint-disable-line
             name: 'phantomjs',
             create: (callback) => {
@@ -160,7 +162,7 @@ class CrawlKit {
             destroy: (browser) => {
                 browser.exit();
             },
-            max: this.concurrency,
+            max: self.concurrency,
             min: 1,
             log: (message, level) => {
                 poolDebug[level] = poolDebug[level] || d(`pool:${level}`);
@@ -172,7 +174,7 @@ class CrawlKit {
             let addUrl;
             const seen = new Map();
             const q = async.queue(function queueWorker(task, workerFinished) {
-                debug('worker started on task', task);
+                info('worker started on URL %s. There are %s tasks left in the queue.', task.url, q.length());
 
                 async.waterfall([
                     function acquireBrowserFromPool(done) {
@@ -250,12 +252,13 @@ class CrawlKit {
                                 return done(err);
                             }
                             if (urls instanceof Array) {
-                                error(`Finder returned ${urls.length} URLs`);
+                                info(`Finder discovered ${urls.length} URLs`);
                                 urls.forEach((url) => {
                                     try {
                                         const uri = new URI(url);
                                         const absoluteUrl = uri.absoluteTo(new URI(task.url)).toString();
                                         if (self.urlFilter && !self.urlFilter(absoluteUrl)) {
+                                            debug(`${url} ignored due to URL filter.`);
                                             return;
                                         }
                                         addUrl(absoluteUrl);
@@ -278,7 +281,7 @@ class CrawlKit {
                                 clearTimeout(timeoutHandler);
                                 return done(err);
                             }
-                            debug(`finder code for ${task.url} evaluated`);
+                            debug(`Finder code for ${task.url} evaluated`);
                         });
                     },
                     function pageRunners(scope, cb) {
@@ -304,10 +307,10 @@ class CrawlKit {
                                 return new Promise((injected, reject) => {
                                     scope.page.injectJs(filename, (err) => {
                                         if (err) {
-                                            error(`Failed to inject companion file '${filename}' for runner '${runnerId}'.`);
+                                            error(`Failed to inject companion file '${filename}' for runner '${runnerId}' on ${task.url}`);
                                             return reject(err);
                                         }
-                                        debug(`Injected companion file '${filename}' for runner '${runnerId}'.`);
+                                        debug(`Injected companion file '${filename}' for runner '${runnerId}' on ${task.url}`);
                                         injected();
                                     });
                                 });
@@ -317,25 +320,25 @@ class CrawlKit {
                                     results[runnerId] = {};
                                     if (err) {
                                         results[runnerId].error = err;
-                                        error(`Runner '${runnerId}' errored: ${err}`);
+                                        error(`Runner '${runnerId}' on ${task.url} errored: ${err}`);
                                     } else {
                                         results[runnerId].result = result;
-                                        debug(`Runner '${runnerId}' result: ${result}`);
+                                        debug(`Runner '${runnerId}' on ${task.url} finished sucessfully.`);
                                     }
                                     nextRunner();
                                 };
                                 scope.page.onCallback = phantomCallback;
                                 scope.page.onError = phantomCallback;
-                                info(`Starting runner '${runnerId}'`);
+                                info(`Starting runner '${runnerId}' on ${task.url}`);
                                 timeoutHandler = setTimeout(function timeout() {
-                                    phantomCallback(`Runner '${runnerId}' timed out after ${self.timeout}ms.`, null);
+                                    phantomCallback(`Runner '${runnerId}' on ${task.url} timed out after ${self.timeout}ms.`, null);
                                 }, self.timeout);
                                 scope.page.evaluate(runner.getRunnable(), (err) => {
                                     if (err) {
                                         clearTimeout(timeoutHandler);
                                         return done(err);
                                     }
-                                    debug(`Runner '${runnerId}' evaluated`);
+                                    debug(`Runner '${runnerId}' on ${task.url} evaluated`);
                                 });
                             }, done);
                         };
@@ -357,7 +360,7 @@ class CrawlKit {
             }, self.concurrency);
 
             q.drain = () => {
-                info(`Processed ${seen.size} discovered URLs.`);
+                info(`Finished. Processed ${seen.size} discovered URLs.`);
                 pool.drain(function drainPool() {
                     pool.destroyAllNow();
                 });
@@ -374,7 +377,7 @@ class CrawlKit {
                 url = url.toString();
 
                 if (!seen.has(url)) {
-                    info(`Discovered ${url} - adding.`);
+                    info(`Adding ${url}`);
                     const result = {};
                     seen.set(url, result);
                     q.push({
@@ -382,7 +385,7 @@ class CrawlKit {
                         result,
                     });
                 } else {
-                    debug(`Already seen ${url} - skipping.`);
+                    debug(`Skipping ${url} - already seen.`);
                 }
             };
 
