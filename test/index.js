@@ -6,6 +6,10 @@ const sinonChai = require('sinon-chai');
 const httpServer = require('http-server');
 const path = require('path');
 const freeport = require('freeport');
+const auth = require('http-auth');
+const http = require('http');
+const httpProxy = require('http-proxy');
+
 const pkg = require(path.join(__dirname, '..', 'package.json'));
 const CrawlKit = require(path.join(__dirname, '..', pkg.main));
 const genericLinkFinder = require('../finders/genericAnchors.js');
@@ -14,10 +18,18 @@ chai.should();
 chai.use(chaiAsPromised);
 chai.use(sinonChai);
 
+const basic = auth.basic({
+    realm: 'Restricted area',
+}, (username, password, cb) => {
+        cb(username === 'foo' && password === 'bar');
+});
+
 describe('CrawlKit', function main() {
     this.timeout(5 * 60 * 1000); // crawling can take a while
     let server;
+    let proxy;
     let url;
+    let proxyUrl;
     let port;
     const host = '0.0.0.0';
 
@@ -32,12 +44,28 @@ describe('CrawlKit', function main() {
             });
             server.listen(port);
             url = `http://${host}:${port}`;
-            done();
+
+            freeport((poxyErr, proxyPort) => {
+                if (poxyErr) {
+                    throw poxyErr;
+                }
+
+                const routingProxy = new httpProxy.createProxyServer(); // eslint-disable-line
+                proxy = http.createServer(basic, (req, res) => {
+                    routingProxy.web(req, res, { target: url });
+                });
+                proxy.listen(proxyPort);
+                proxyUrl = `http://${host}:${proxyPort}`;
+                done();
+            });
         });
     });
 
-    after(() => {
-        server.close();
+    after((done) => {
+        proxy.close(() => {
+          server.close();
+          done();
+        });
     });
 
 
@@ -310,6 +338,23 @@ describe('CrawlKit', function main() {
                     },
                 },
             };
+            return crawler.crawl().should.eventually.deep.equal({results});
+        });
+
+
+        it('should be possible to set basic auth headers', () => {
+            const crawler = new CrawlKit(proxyUrl);
+            crawler.phantomPageSettings = {
+                userName: 'foo',
+                password: 'bar',
+            };
+
+            const results = {};
+            results[`${proxyUrl}/`] = {};
+            results[`${proxyUrl}/#somehash`] = {};
+            results[`${proxyUrl}/other.html`] = {};
+
+            crawler.finder = genericLinkFinder;
             return crawler.crawl().should.eventually.deep.equal({results});
         });
     });
