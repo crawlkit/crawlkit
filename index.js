@@ -21,6 +21,7 @@ const urlFilterKey = Symbol();
 const phantomParamsKey = Symbol();
 const phantomPageSettingsKey = Symbol();
 const followRedirectsKey = Symbol();
+const browserCookiesKey = Symbol();
 
 function transformMapToObject(map) {
     const result = {};
@@ -112,17 +113,51 @@ class CrawlKit {
       return this[followRedirectsKey] || false;
     }
 
+    set browserCookies(cookies) {
+      if (!(cookies instanceof Array)) {
+          throw new Error('Not properly munchable');
+      }
+      this[browserCookiesKey] = cookies;
+    }
+
+    get browserCookies() {
+      return this[browserCookiesKey] || [];
+    }
+
     crawl() {
         const self = this;
         const pool = poolModule.Pool({ // eslint-disable-line
             name: 'phantomjs',
-            create: function createPhantom(callback) {
-                driver.create({
-                    path: phantomjs.path,
-                    parameters: self.phantomParameters,
-                }, callback);
+            create: (callback) => {
+                async.waterfall([
+                    function createPhantom(done) {
+                        driver.create({
+                            path: phantomjs.path,
+                            parameters: self.phantomParameters,
+                        }, done);
+                    },
+                    function addCookies(browser, done) {
+                        Promise.all(self.browserCookies.map((cookie) => {
+                          return new Promise((success, reject) => {
+                              debug(`adding cookie '${cookie.name}=${cookie.value}'`);
+                              browser.addCookie(cookie, (cookieErr) => {
+                                  if (cookieErr) {
+                                      error(`adding cookie '${cookie.name}' failed`);
+                                      return reject(cookieErr);
+                                  }
+                                  success();
+                              });
+                          });
+                        })).then(() => {
+                            debug(`finished adding cookies`);
+                            done(null, browser);
+                        }, (cookieErr) => {
+                            done(cookieErr, browser);
+                        });
+                    },
+                ], callback);
             },
-            destroy: function destroyPhantom(browser) {
+            destroy: (browser) => {
                 browser.exit();
             },
             max: this.concurrency,
