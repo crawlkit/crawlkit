@@ -246,7 +246,7 @@ class CrawlKit {
                             let timeoutHandler;
                             const runnerId = next.value[0];
                             const runner = next.value[1];
-                            Promise.all([runner.getCompanionFiles() || []].map((filename) => {
+                            Promise.all((runner.getCompanionFiles() || []).map((filename) => {
                                 return new Promise((injected, reject) => {
                                     scope.page.injectJs(filename, (err) => {
                                         if (err) {
