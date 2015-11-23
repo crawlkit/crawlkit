@@ -1,10 +1,11 @@
 # CrawlKit [![Build Status](https://travis-ci.org/crawlkit/crawlkit.svg?branch=master)](https://travis-ci.org/crawlkit/crawlkit)
 
-A crawler based on Phantom. Allows discovery of dynamic content and supports custom scrapers. For all your ajaxy crawling & scraping needs.
+A crawler based on PhantomJS. Allows discovery of dynamic content and supports custom scrapers. For all your ajaxy crawling & scraping needs.
 
 * Supports parallel crawling/scraping via Phantom pooling.
 * Supports custom-defined link discovery.
 * Supports custom-defined runners (scrape, test, validate, etc.)
+* Supports following redirects (and because it's based on PhantomJS, JavaScript redirects will be followed as well as `<meta>` redirects.)
 
 ## Usage
 ```javascript
@@ -31,3 +32,4 @@ An instance of CrawlKit has the following properties/methods:
 * `.defaultAbsoluteTo`: `String` this is where a URL gets rewritten to if it is absolute, but doesn't have a protocol. Defaults to `http://`.
 * `.phantomParameters`: `Object` map of parameters to pass to PhantomJS. You can use this for example to ignore SSL errors. For a list of parameters, please refer to the [PhantomJS documentation](http://phantomjs.org/api/command-line.html).
 * `.phantomPageSettings`: `Object` map of settings to pass to an opened page. You can use this for example for Basic Authentication. For a list of options, please refer to the [PhantomJS documentation](http://phantomjs.org/api/webpage/property/settings.html).
+* `.followRedirects`: `boolean` whether to follow redirects or not. When following redirects, the original page is not processed. Defaults to `false`.

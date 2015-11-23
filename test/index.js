@@ -315,6 +315,28 @@ describe('CrawlKit', function main() {
         });
     });
 
+    describe('redirects', () => {
+        it('should not be followed by default', () => {
+            const crawler = new CrawlKit(`${url}/redirect.html`);
+            const results = {};
+            results[`${url}/redirect.html`] = {};
+            return crawler.crawl().should.eventually.deep.equal({results});
+        });
+
+        it('should be followed when the according setting is enabled', () => {
+            const redirectUrl = `${url}/redirect.html`;
+            const targetUrl = `${url}/redirected.html`;
+            const crawler = new CrawlKit(redirectUrl);
+            crawler.followRedirects = true;
+            const results = {};
+            results[redirectUrl] = {
+                error: `page for ${redirectUrl} redirected to ${targetUrl}`,
+            };
+            results[targetUrl] = {};
+            return crawler.crawl().should.eventually.deep.equal({results});
+        });
+    });
+
     describe('settings', () => {
         it('should be possible to set a page setting', () => {
             const crawler = new CrawlKit(url);
