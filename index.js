@@ -20,6 +20,7 @@ const runnerKey = Symbol();
 const urlFilterKey = Symbol();
 const phantomParamsKey = Symbol();
 const phantomPageSettingsKey = Symbol();
+const followRedirectsKey = Symbol();
 
 function transformMapToObject(map) {
     const result = {};
@@ -103,6 +104,14 @@ class CrawlKit {
         return this[phantomPageSettingsKey] || {};
     }
 
+    set followRedirects(value) {
+      this[followRedirectsKey] = !!value;
+    }
+
+    get followRedirects() {
+      return this[followRedirectsKey] || false;
+    }
+
     crawl() {
         const self = this;
         const pool = poolModule.Pool({ // eslint-disable-line
@@ -170,6 +179,16 @@ class CrawlKit {
                         });
                     },
                     function openPage(scope, done) {
+                        if (self.followRedirects) {
+                            scope.page.onNavigationRequested = (redirectedToUrl, type, willNavigate, mainFrame) => {
+                                debug(`page for ${task.url} asks for redirect`);
+
+                                if (mainFrame && type === 'Other' && !(new URI(task.url).equals(redirectedToUrl))) {
+                                    addUrl(redirectedToUrl);
+                                    done(`page for ${task.url} redirected to ${redirectedToUrl}`, scope);
+                                }
+                            };
+                        }
                         scope.page.open(task.url, (err, status) => {
                             if (err) {
                                 return done(err, scope);
