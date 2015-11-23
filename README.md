@@ -33,3 +33,4 @@ An instance of CrawlKit has the following properties/methods:
 * `.phantomParameters`: `Object` map of parameters to pass to PhantomJS. You can use this for example to ignore SSL errors. For a list of parameters, please refer to the [PhantomJS documentation](http://phantomjs.org/api/command-line.html).
 * `.phantomPageSettings`: `Object` map of settings to pass to an opened page. You can use this for example for Basic Authentication. For a list of options, please refer to the [PhantomJS documentation](http://phantomjs.org/api/webpage/property/settings.html).
 * `.followRedirects`: `boolean` whether to follow redirects or not. When following redirects, the original page is not processed. Defaults to `false`.
+* `.browserCookies`: `Array` Cookies to set within PhantomJS. Each entry in the array is supposed to be an object [following the PhantomJS spec](http://phantomjs.org/api/webpage/method/add-cookie.html). Empty by default.

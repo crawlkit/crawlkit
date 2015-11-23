@@ -337,6 +337,38 @@ describe('CrawlKit', function main() {
         });
     });
 
+    describe('cookies', () => {
+        it('should be added to the page if given', () => {
+          const crawler = new CrawlKit(url);
+
+          crawler.browserCookies = [{
+              name: 'cookie',
+              value: 'monster',
+              path: '/',
+              domain: host,
+          }];
+
+          crawler.addRunner('cookies', {
+              getCompanionFiles: () => [],
+              getRunnable: () => {
+                return function getCookies() {
+                    window.callPhantom(null, document.cookie);
+                };
+              },
+          });
+
+          const results = {};
+          results[`${url}/`] = {
+              runners: {
+                  cookies: {
+                      result: 'cookie=monster',
+                  },
+              },
+          };
+          return crawler.crawl().should.eventually.deep.equal({results});
+        });
+    });
+
     describe('settings', () => {
         it('should be possible to set a page setting', () => {
             const crawler = new CrawlKit(url);
