@@ -6,10 +6,12 @@ const d = require('debug');
 const URI = require('urijs');
 const poolModule = require('generic-pool');
 const once = require('once');
+const NanoTimer = require('nanotimer');
+const Chance = require('chance');
 
-const debug = d('crawler:debug');
-const info = d('crawler:info');
-const error = d('crawler:error');
+const debug = d('crawlkit:debug');
+const info = d('crawlkit:info');
+const error = d('crawlkit:error');
 const poolDebug = {};
 
 const concurrencyKey = Symbol();
@@ -126,6 +128,9 @@ class CrawlKit {
 
     crawl() {
         const self = this;
+        const crawlTimer = new NanoTimer();
+
+        info(`Starting to crawl. Concurrency is %s`, self.concurrency);
         const pool = poolModule.Pool({ // eslint-disable-line
             name: 'phantomjs',
             create: (callback) => {
@@ -160,7 +165,7 @@ class CrawlKit {
             destroy: (browser) => {
                 browser.exit();
             },
-            max: this.concurrency,
+            max: self.concurrency,
             min: 1,
             log: (message, level) => {
                 poolDebug[level] = poolDebug[level] || d(`pool:${level}`);
@@ -169,224 +174,248 @@ class CrawlKit {
         });
 
         return new Promise(function workOnPage(resolve) {
-            let addUrl;
-            const seen = new Map();
-            const q = async.queue(function queueWorker(task, workerFinished) {
-                debug('worker started on task', task);
+            crawlTimer.time((stopCrawlTimer) => {
+                let addUrl;
+                const seen = new Map();
+                const q = async.queue(function queueWorker(task, workerFinished) {
+                    const workerLogPrefix = `crawlkit:task(${task.id})`;
+                    const workerDebug = d(`${workerLogPrefix}:debug`);
+                    const workerInfo = d(`${workerLogPrefix}:info`);
+                    const workerError = d(`${workerLogPrefix}:error`);
+                    const workerTimer = new NanoTimer();
 
-                async.waterfall([
-                    function acquireBrowserFromPool(done) {
-                        pool.acquire((err, browser) => {
-                            const scope = {browser};
-                            if (err) {
-                                return done(err, scope);
-                            }
-                            debug(`acquired phantom from pool for ${task.url}`);
-                            done(null, scope);
-                        });
-                    },
-                    function createPage(scope, done) {
-                        scope.browser.createPage((err, page) => {
-                            if (err) {
-                                return done(err, scope);
-                            }
-                            debug(`page for ${task.url} created`);
-                            scope.page = page;
-                            done(null, scope);
-                        });
-                    },
-                    function setPageSettings(scope, done) {
-                        Promise.all(Object.keys(self.phantomPageSettings).map((key) => {
-                            return new Promise((success, reject) => {
-                                debug(`setting settings.${key}`);
-                                scope.page.set(`settings.${key}`, self.phantomPageSettings[key], (settingErr) => {
-                                    if (settingErr) {
-                                        error(`setting settings.${key} failed`);
-                                        return reject(settingErr);
-                                    }
-                                    success();
-                                });
-                            });
-                        })).then(() => {
-                            done(null, scope);
-                        }, (settingErr) => {
-                            done(settingErr, scope);
-                        });
-                    },
-                    function openPage(scope, done) {
-                        if (self.followRedirects) {
-                            scope.page.onNavigationRequested = (redirectedToUrl, type, willNavigate, mainFrame) => {
-                                debug(`page for ${task.url} asks for redirect`);
-
-                                if (mainFrame && type === 'Other' && !(new URI(task.url).equals(redirectedToUrl))) {
-                                    addUrl(redirectedToUrl);
-                                    done(`page for ${task.url} redirected to ${redirectedToUrl}`, scope);
-                                }
-                            };
-                        }
-                        scope.page.open(task.url, (err, status) => {
-                            if (err) {
-                                return done(err, scope);
-                            }
-                            if (status === 'fail') {
-                                const message = `Failed to open ${task.url}`;
-                                return done(message, scope);
-                            }
-                            debug(`page for ${task.url} opened`);
-                            done(null, scope);
-                        });
-                    },
-                    function findLinks(scope, cb) {
-                        let timeoutHandler;
-                        const done = once((err) => {
-                            clearTimeout(timeoutHandler);
-                            cb(err, scope);
-                        });
-                        if (!self.finder) {
-                            return done();
-                        }
-                        function phantomCallback(err, urls) {
-                            if (err) {
-                                return done(err);
-                            }
-                            if (urls instanceof Array) {
-                                error(`Finder returned ${urls.length} URLs`);
-                                urls.forEach((url) => {
-                                    try {
-                                        const uri = new URI(url);
-                                        const absoluteUrl = uri.absoluteTo(new URI(task.url)).toString();
-                                        if (self.urlFilter && !self.urlFilter(absoluteUrl)) {
-                                            return;
-                                        }
-                                        addUrl(absoluteUrl);
-                                    } catch (e) {
-                                        error(`${url} is not a valid URL`);
-                                    }
-                                });
-                            } else {
-                                error('Given finder returned non-Array value');
-                            }
-                            done();
-                        }
-                        scope.page.onCallback = phantomCallback;
-                        scope.page.onError = phantomCallback;
-                        timeoutHandler = setTimeout(function timeout() {
-                            phantomCallback(`Finder timed out after ${self.timeout}ms.`, null);
-                        }, self.timeout);
-                        scope.page.evaluate(self.finder, (err) => {
-                            if (err) {
-                                clearTimeout(timeoutHandler);
-                                return done(err);
-                            }
-                            debug(`finder code for ${task.url} evaluated`);
-                        });
-                    },
-                    function pageRunners(scope, cb) {
-                        const done = once((err) => {
-                            cb(err, scope);
-                        });
-
-                        if (self.getRunners().size === 0) {
-                            debug('No runners defined');
-                            return done();
-                        }
-                        const runnerIterator = self.getRunners()[Symbol.iterator]();
-                        const results = task.result.runners = {};
-                        const nextRunner = () => {
-                            const next = runnerIterator.next();
-                            if (next.done) {
-                                return done();
-                            }
-                            let timeoutHandler;
-                            const runnerId = next.value[0];
-                            const runner = next.value[1];
-                            Promise.all((runner.getCompanionFiles() || []).map((filename) => {
-                                return new Promise((injected, reject) => {
-                                    scope.page.injectJs(filename, (err) => {
-                                        if (err) {
-                                            error(`Failed to inject companion file '${filename}' for runner '${runnerId}'.`);
-                                            return reject(err);
-                                        }
-                                        debug(`Injected companion file '${filename}' for runner '${runnerId}'.`);
-                                        injected();
-                                    });
-                                });
-                            })).then(function run() {
-                                const phantomCallback = (err, result) => {
-                                    clearTimeout(timeoutHandler);
-                                    results[runnerId] = {};
+                    workerInfo('Started on %s - %s task(s) left in the queue.', task.url, q.length());
+                    workerTimer.time((stopWorkerTimer) => {
+                        async.waterfall([
+                            function acquireBrowserFromPool(done) {
+                                pool.acquire((err, browser) => {
+                                    const scope = {browser};
                                     if (err) {
-                                        results[runnerId].error = err;
-                                        error(`Runner '${runnerId}' errored: ${err}`);
-                                    } else {
-                                        results[runnerId].result = result;
-                                        debug(`Runner '${runnerId}' result: ${result}`);
+                                        return done(err, scope);
                                     }
-                                    nextRunner();
-                                };
+                                    workerDebug(`Acquired phantom from pool.`);
+                                    done(null, scope);
+                                });
+                            },
+                            function createPage(scope, done) {
+                                scope.browser.createPage((err, page) => {
+                                    if (err) {
+                                        return done(err, scope);
+                                    }
+                                    workerDebug(`Page created.`);
+                                    scope.page = page;
+                                    done(null, scope);
+                                });
+                            },
+                            function setPageSettings(scope, done) {
+                                Promise.all(Object.keys(self.phantomPageSettings).map((key) => {
+                                    return new Promise((success, reject) => {
+                                        workerDebug(`Setting settings.${key}`);
+                                        scope.page.set(`settings.${key}`, self.phantomPageSettings[key], (settingErr) => {
+                                            if (settingErr) {
+                                                workerError(`Setting settings.${key} failed`);
+                                                return reject(settingErr);
+                                            }
+                                            success();
+                                        });
+                                    });
+                                })).then(() => {
+                                    done(null, scope);
+                                }, (settingErr) => {
+                                    done(settingErr, scope);
+                                });
+                            },
+                            function openPage(scope, done) {
+                                if (self.followRedirects) {
+                                    scope.page.onNavigationRequested = (redirectedToUrl, type, willNavigate, mainFrame) => {
+                                        workerDebug(`Page for ${task.url} asks for redirect`);
+
+                                        if (mainFrame && type === 'Other' && !(new URI(task.url).equals(redirectedToUrl))) {
+                                            addUrl(redirectedToUrl);
+                                            const err = `page for ${task.url} redirected to ${redirectedToUrl}`;
+                                            done(err, scope);
+                                        }
+                                    };
+                                }
+                                scope.page.open(task.url, (err, status) => {
+                                    if (err) {
+                                        return done(err, scope);
+                                    }
+                                    if (status === 'fail') {
+                                        return done(`Failed to open ${task.url}`, scope);
+                                    }
+                                    workerDebug(`Page opened`);
+                                    done(null, scope);
+                                });
+                            },
+                            function findLinks(scope, cb) {
+                                let timeoutHandler;
+                                const done = once((err) => {
+                                    clearTimeout(timeoutHandler);
+                                    cb(err, scope);
+                                });
+                                if (!self.finder) {
+                                    return done();
+                                }
+                                function phantomCallback(err, urls) {
+                                    if (err) {
+                                        return done(err);
+                                    }
+                                    if (urls instanceof Array) {
+                                        workerInfo(`Finder discovered ${urls.length} URLs.`);
+                                        urls.forEach((url) => {
+                                            try {
+                                                const uri = new URI(url);
+                                                const absoluteUrl = uri.absoluteTo(new URI(task.url)).toString();
+                                                if (self.urlFilter && !self.urlFilter(absoluteUrl)) {
+                                                    workerDebug(`Discovered URL ${url} ignored due to URL filter.`);
+                                                    return;
+                                                }
+                                                addUrl(absoluteUrl);
+                                            } catch (e) {
+                                                workerDebug(`Discovered URL "${url}" is not valid`);
+                                            }
+                                        });
+                                    } else {
+                                        workerError('Given finder returned non-Array value');
+                                    }
+                                    done();
+                                }
                                 scope.page.onCallback = phantomCallback;
                                 scope.page.onError = phantomCallback;
-                                info(`Starting runner '${runnerId}'`);
                                 timeoutHandler = setTimeout(function timeout() {
-                                    phantomCallback(`Runner '${runnerId}' timed out after ${self.timeout}ms.`, null);
+                                    phantomCallback(`Finder timed out after ${self.timeout}ms.`, null);
                                 }, self.timeout);
-                                scope.page.evaluate(runner.getRunnable(), (err) => {
+                                scope.page.evaluate(self.finder, (err) => {
                                     if (err) {
                                         clearTimeout(timeoutHandler);
                                         return done(err);
                                     }
-                                    debug(`Runner '${runnerId}' evaluated`);
+                                    workerDebug(`Finder code evaluated`);
                                 });
-                            }, done);
-                        };
-                        nextRunner();
-                    },
-                ], (err, scope) => {
-                    if (err) {
-                        error(err);
-                        task.result.error = err;
-                    }
-                    if (scope.page) {
-                        scope.page.close();
-                    }
-                    if (scope.browser) {
-                        pool.release(scope.browser);
-                    }
-                    workerFinished(err);
-                });
-            }, self.concurrency);
+                            },
+                            function pageRunners(scope, cb) {
+                                const done = once((err) => {
+                                    cb(err, scope);
+                                });
 
-            q.drain = () => {
-                info(`Processed ${seen.size} discovered URLs.`);
-                pool.drain(function drainPool() {
-                    pool.destroyAllNow();
-                });
-                const result = {
-                    results: transformMapToObject(seen),
-                };
-                resolve(result);
-            };
+                                if (self.getRunners().size === 0) {
+                                    workerDebug('No runners defined');
+                                    return done();
+                                }
+                                const runnerIterator = self.getRunners()[Symbol.iterator]();
+                                const results = task.result.runners = {};
+                                const nextRunner = () => {
+                                    const next = runnerIterator.next();
+                                    if (next.done) {
+                                        return done();
+                                    }
+                                    let timeoutHandler;
+                                    const runnerId = next.value[0];
+                                    const runner = next.value[1];
+                                    Promise.all((runner.getCompanionFiles() || []).map((filename) => {
+                                        return new Promise((injected, reject) => {
+                                            scope.page.injectJs(filename, (err) => {
+                                                if (err) {
+                                                    workerError(`Failed to inject companion file '${filename}' for runner '${runnerId}' on ${task.url}`);
+                                                    return reject(err);
+                                                }
+                                                workerDebug(`Injected companion file '${filename}' for runner '${runnerId}' on ${task.url}`);
+                                                injected();
+                                            });
+                                        });
+                                    })).then(function run() {
+                                        const runnerLogPrefix = `${workerLogPrefix}:runner(${runnerId})`;
+                                        // const runnerDebug = d(`${runnerLogPrefix}:debug`);
+                                        const runnerInfo = d(`${runnerLogPrefix}:info`);
+                                        const runnerError = d(`${runnerLogPrefix}:error`);
 
-            addUrl = (u) => {
-                let url = new URI(u);
-                url = url.absoluteTo(self.defaultAbsoluteTo);
-                url.normalize();
-                url = url.toString();
-
-                if (!seen.has(url)) {
-                    info(`Discovered ${url} - adding.`);
-                    const result = {};
-                    seen.set(url, result);
-                    q.push({
-                        url,
-                        result,
+                                        const phantomCallback = (err, result) => {
+                                            clearTimeout(timeoutHandler);
+                                            results[runnerId] = {};
+                                            if (err) {
+                                                results[runnerId].error = err;
+                                                runnerError(err);
+                                            } else {
+                                                results[runnerId].result = result;
+                                                runnerInfo(`Finished.`);
+                                            }
+                                            nextRunner();
+                                        };
+                                        scope.page.onCallback = phantomCallback;
+                                        scope.page.onError = phantomCallback;
+                                        runnerInfo(`Started.`);
+                                        timeoutHandler = setTimeout(function timeout() {
+                                            phantomCallback(`Runner '${runnerId}' timed out after ${self.timeout}ms.`, null);
+                                        }, self.timeout);
+                                        scope.page.evaluate(runner.getRunnable(), (err) => {
+                                            if (err) {
+                                                clearTimeout(timeoutHandler);
+                                                return done(err);
+                                            }
+                                            workerDebug(`Runner '${runnerId}' evaluated`);
+                                        });
+                                    }, done);
+                                };
+                                nextRunner();
+                            },
+                        ], (err, scope) => {
+                            if (err) {
+                                workerError(err);
+                                task.result.error = err;
+                            }
+                            if (scope.page) {
+                                workerDebug(`Page closed.`);
+                                scope.page.close();
+                            }
+                            if (scope.browser) {
+                                workerDebug(`Phantom released to pool.`);
+                                pool.release(scope.browser);
+                            }
+                            stopWorkerTimer();
+                            workerFinished(err);
+                        });
+                    }, '', 'm', (workerRuntime) => {
+                        workerInfo('Finished. Took %sms.', workerRuntime);
                     });
-                } else {
-                    debug(`Already seen ${url} - skipping.`);
-                }
-            };
+                }, self.concurrency);
 
-            addUrl(self.url);
+                q.drain = () => {
+                    stopCrawlTimer();
+                    info(`Workers finished. Processed ${seen.size} discovered URLs.`);
+                    pool.drain(function drainPool() {
+                        pool.destroyAllNow();
+                    });
+                    const result = {
+                        results: transformMapToObject(seen),
+                    };
+                    resolve(result);
+                };
+
+                addUrl = (u) => {
+                    let url = new URI(u);
+                    url = url.absoluteTo(self.defaultAbsoluteTo);
+                    url.normalize();
+                    url = url.toString();
+
+                    if (!seen.has(url)) {
+                        info(`Adding ${url}`);
+                        const result = {};
+                        seen.set(url, result);
+                        q.push({
+                            url,
+                            result,
+                            id: new Chance().name(),
+                        });
+                    } else {
+                        debug(`Skipping ${url} - already seen.`);
+                    }
+                };
+
+                addUrl(self.url);
+            }, '', 's', (time) => {
+              info('Crawling/scraping took %ss.', time);
+            });
         });
     }
 }
