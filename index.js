@@ -338,7 +338,7 @@ class CrawlKit {
                                         });
                                     })).then(function run() {
                                         const runnerLogPrefix = `${workerLogPrefix}:runner(${runnerId})`;
-                                        // const runnerDebug = d(`${runnerLogPrefix}:debug`);
+                                        const runnerConsole = d(`${runnerLogPrefix}:console:debug`);
                                         const runnerInfo = d(`${runnerLogPrefix}:info`);
                                         const runnerError = d(`${runnerLogPrefix}:error`);
 
@@ -356,6 +356,7 @@ class CrawlKit {
                                         };
                                         scope.page.onCallback = phantomCallback;
                                         scope.page.onError = phantomCallback;
+                                        scope.page.onConsoleMessage = runnerConsole;
                                         runnerInfo(`Started.`);
                                         timeoutHandler = setTimeout(() => {
                                             phantomCallback(`Runner '${runnerId}' timed out after ${self.timeout}ms.`, null);
