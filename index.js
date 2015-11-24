@@ -174,7 +174,6 @@ class CrawlKit {
 
         return new Promise(function workOnPage(resolve) {
             timer.time((stopTimer) => {
-
                 let addUrl;
                 const seen = new Map();
                 const q = async.queue(function queueWorker(task, workerFinished) {
