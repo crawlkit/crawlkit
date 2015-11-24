@@ -274,7 +274,7 @@ class CrawlKit {
                                                 }
                                                 addUrl(absoluteUrl);
                                             } catch (e) {
-                                                workerDebug(`Discovered URL "${url}" is not valid`);
+                                                workerDebug(e);
                                             }
                                         });
                                     } else {
