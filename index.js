@@ -143,6 +143,9 @@ class CrawlKit {
                         }, done);
                     },
                     function addCookies(browser, done) {
+                        if (self.browserCookies.length === 0) {
+                            return done(null, browser);
+                        }
                         Promise.all(self.browserCookies.map((cookie) => {
                           return new Promise((success, reject) => {
                               debug(`adding cookie '${cookie.name}=${cookie.value}'`);
