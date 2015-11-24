@@ -34,3 +34,6 @@ An instance of CrawlKit has the following properties/methods:
 * `.phantomPageSettings`: `Object` map of settings to pass to an opened page. You can use this for example for Basic Authentication. For a list of options, please refer to the [PhantomJS documentation](http://phantomjs.org/api/webpage/property/settings.html).
 * `.followRedirects`: `boolean` whether to follow redirects or not. When following redirects, the original page is not processed. Defaults to `false`.
 * `.browserCookies`: `Array` Cookies to set within PhantomJS. Each entry in the array is supposed to be an object [following the PhantomJS spec](http://phantomjs.org/api/webpage/method/add-cookie.html). Empty by default.
+
+## Debugging
+CrawlKit uses [debug](https://github.com/visionmedia/debug) for debugging purposes. In short, you can add `DEBUG="*"` as an environment variable before starting your app to get all the logs. A more sane configuration is probably `DEBUG="crawlkit:info,crawlkit*:error"` if your page is big.
