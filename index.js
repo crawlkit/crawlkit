@@ -7,10 +7,11 @@ const URI = require('urijs');
 const poolModule = require('generic-pool');
 const once = require('once');
 const NanoTimer = require('nanotimer');
+const Chance = require('chance');
 
-const debug = d('crawler:debug');
-const info = d('crawler:info');
-const error = d('crawler:error');
+const debug = d('crawlkit:debug');
+const info = d('crawlkit:info');
+const error = d('crawlkit:error');
 const poolDebug = {};
 
 const concurrencyKey = Symbol();
@@ -177,7 +178,13 @@ class CrawlKit {
                 let addUrl;
                 const seen = new Map();
                 const q = async.queue(function queueWorker(task, workerFinished) {
-                    info('worker started on URL %s. There are %s tasks left in the queue.', task.url, q.length());
+                    const workerLogPrefix = `crawlkit:task(${task.id})`;
+                    const workerDebug = d(`${workerLogPrefix}:debug`);
+                    const workerInfo = d(`${workerLogPrefix}:info`);
+                    const workerError = d(`${workerLogPrefix}:error`);
+                    const workerTimer = new NanoTimer();
+
+                    workerInfo('Started on %s', task.url);
 
                     async.waterfall([
                         function acquireBrowserFromPool(done) {
@@ -186,7 +193,7 @@ class CrawlKit {
                                 if (err) {
                                     return done(err, scope);
                                 }
-                                debug(`acquired phantom from pool for ${task.url}`);
+                                workerDebug(`Acquired phantom from pool.`);
                                 done(null, scope);
                             });
                         },
@@ -195,7 +202,7 @@ class CrawlKit {
                                 if (err) {
                                     return done(err, scope);
                                 }
-                                debug(`page for ${task.url} created`);
+                                workerDebug(`Page created.`);
                                 scope.page = page;
                                 done(null, scope);
                             });
@@ -203,10 +210,10 @@ class CrawlKit {
                         function setPageSettings(scope, done) {
                             Promise.all(Object.keys(self.phantomPageSettings).map((key) => {
                                 return new Promise((success, reject) => {
-                                    debug(`setting settings.${key}`);
+                                    workerDebug(`Setting settings.${key}`);
                                     scope.page.set(`settings.${key}`, self.phantomPageSettings[key], (settingErr) => {
                                         if (settingErr) {
-                                            error(`setting settings.${key} failed`);
+                                            workerError(`Setting settings.${key} failed`);
                                             return reject(settingErr);
                                         }
                                         success();
@@ -221,11 +228,12 @@ class CrawlKit {
                         function openPage(scope, done) {
                             if (self.followRedirects) {
                                 scope.page.onNavigationRequested = (redirectedToUrl, type, willNavigate, mainFrame) => {
-                                    debug(`page for ${task.url} asks for redirect`);
+                                    workerDebug(`Page for ${task.url} asks for redirect`);
 
                                     if (mainFrame && type === 'Other' && !(new URI(task.url).equals(redirectedToUrl))) {
                                         addUrl(redirectedToUrl);
-                                        done(`page for ${task.url} redirected to ${redirectedToUrl}`, scope);
+                                        const err = `page for ${task.url} redirected to ${redirectedToUrl}`;
+                                        done(err, scope);
                                     }
                                 };
                             }
@@ -234,10 +242,9 @@ class CrawlKit {
                                     return done(err, scope);
                                 }
                                 if (status === 'fail') {
-                                    const message = `Failed to open ${task.url}`;
-                                    return done(message, scope);
+                                    return done(`Failed to open ${task.url}`, scope);
                                 }
-                                debug(`page for ${task.url} opened`);
+                                workerDebug(`Page opened`);
                                 done(null, scope);
                             });
                         },
@@ -255,22 +262,22 @@ class CrawlKit {
                                     return done(err);
                                 }
                                 if (urls instanceof Array) {
-                                    info(`Finder discovered ${urls.length} URLs`);
+                                    workerInfo(`Finder discovered ${urls.length} URLs.`);
                                     urls.forEach((url) => {
                                         try {
                                             const uri = new URI(url);
                                             const absoluteUrl = uri.absoluteTo(new URI(task.url)).toString();
                                             if (self.urlFilter && !self.urlFilter(absoluteUrl)) {
-                                                debug(`${url} ignored due to URL filter.`);
+                                                workerDebug(`Discovered URL ${url} ignored due to URL filter.`);
                                                 return;
                                             }
                                             addUrl(absoluteUrl);
                                         } catch (e) {
-                                            error(`${url} is not a valid URL`);
+                                            workerDebug(`Discovered URL "${url}" is not valid`);
                                         }
                                     });
                                 } else {
-                                    error('Given finder returned non-Array value');
+                                    workerError('Given finder returned non-Array value');
                                 }
                                 done();
                             }
@@ -284,7 +291,7 @@ class CrawlKit {
                                     clearTimeout(timeoutHandler);
                                     return done(err);
                                 }
-                                debug(`Finder code for ${task.url} evaluated`);
+                                workerDebug(`Finder code evaluated`);
                             });
                         },
                         function pageRunners(scope, cb) {
@@ -293,7 +300,7 @@ class CrawlKit {
                             });
 
                             if (self.getRunners().size === 0) {
-                                debug('No runners defined');
+                                workerDebug('No runners defined');
                                 return done();
                             }
                             const runnerIterator = self.getRunners()[Symbol.iterator]();
@@ -310,29 +317,34 @@ class CrawlKit {
                                     return new Promise((injected, reject) => {
                                         scope.page.injectJs(filename, (err) => {
                                             if (err) {
-                                                error(`Failed to inject companion file '${filename}' for runner '${runnerId}' on ${task.url}`);
+                                                workerError(`Failed to inject companion file '${filename}' for runner '${runnerId}' on ${task.url}`);
                                                 return reject(err);
                                             }
-                                            debug(`Injected companion file '${filename}' for runner '${runnerId}' on ${task.url}`);
+                                            workerDebug(`Injected companion file '${filename}' for runner '${runnerId}' on ${task.url}`);
                                             injected();
                                         });
                                     });
                                 })).then(function run() {
+                                    const runnerLogPrefix = `${workerLogPrefix}:runner(${runnerId})`;
+                                    // const runnerDebug = d(`${runnerLogPrefix}:debug`);
+                                    const runnerInfo = d(`${runnerLogPrefix}:info`);
+                                    const runnerError = d(`${runnerLogPrefix}:error`);
+
                                     const phantomCallback = (err, result) => {
                                         clearTimeout(timeoutHandler);
                                         results[runnerId] = {};
                                         if (err) {
                                             results[runnerId].error = err;
-                                            error(`Runner '${runnerId}' on ${task.url} errored: ${err}`);
+                                            runnerError(err);
                                         } else {
                                             results[runnerId].result = result;
-                                            debug(`Runner '${runnerId}' on ${task.url} finished sucessfully.`);
+                                            runnerInfo(`Finished.`);
                                         }
                                         nextRunner();
                                     };
                                     scope.page.onCallback = phantomCallback;
                                     scope.page.onError = phantomCallback;
-                                    info(`Starting runner '${runnerId}' on ${task.url}`);
+                                    runnerInfo(`Started.`);
                                     timeoutHandler = setTimeout(function timeout() {
                                         phantomCallback(`Runner '${runnerId}' timed out after ${self.timeout}ms.`, null);
                                     }, self.timeout);
@@ -341,7 +353,7 @@ class CrawlKit {
                                             clearTimeout(timeoutHandler);
                                             return done(err);
                                         }
-                                        debug(`Runner '${runnerId}' on ${task.url} evaluated`);
+                                        workerDebug(`Runner '${runnerId}' evaluated`);
                                     });
                                 }, done);
                             };
@@ -349,7 +361,7 @@ class CrawlKit {
                         },
                     ], (err, scope) => {
                         if (err) {
-                            error(err);
+                            workerError(err);
                             task.result.error = err;
                         }
                         if (scope.page) {
@@ -358,13 +370,14 @@ class CrawlKit {
                         if (scope.browser) {
                             pool.release(scope.browser);
                         }
+                        workerInfo('Finished.');
                         workerFinished(err);
                     });
                 }, self.concurrency);
 
                 q.drain = () => {
                     stopTimer();
-                    info(`Finished. Processed ${seen.size} discovered URLs.`);
+                    info(`Workers finished. Processed ${seen.size} discovered URLs.`);
                     pool.drain(function drainPool() {
                         pool.destroyAllNow();
                     });
@@ -387,6 +400,9 @@ class CrawlKit {
                         q.push({
                             url,
                             result,
+                            id: new Chance().name(),
+                        }, () => {
+                            info('There are %s tasks left in the queue.', q.length());
                         });
                     } else {
                         debug(`Skipping ${url} - already seen.`);
@@ -395,7 +411,7 @@ class CrawlKit {
 
                 addUrl(self.url);
             }, '', 's', (time) => {
-              debug('Crawling/scraping took %ss.', time);
+              info('Crawling/scraping took %ss.', time);
             });
         });
     }
