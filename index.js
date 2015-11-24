@@ -284,7 +284,7 @@ class CrawlKit {
                                 }
                                 scope.page.onCallback = phantomCallback;
                                 scope.page.onError = phantomCallback;
-                                timeoutHandler = setTimeout(function timeout() {
+                                timeoutHandler = setTimeout(() => {
                                     phantomCallback(`Finder timed out after ${self.timeout}ms.`, null);
                                 }, self.timeout);
                                 scope.page.evaluate(self.finder, (err) => {
@@ -346,7 +346,7 @@ class CrawlKit {
                                         scope.page.onCallback = phantomCallback;
                                         scope.page.onError = phantomCallback;
                                         runnerInfo(`Started.`);
-                                        timeoutHandler = setTimeout(function timeout() {
+                                        timeoutHandler = setTimeout(() => {
                                             phantomCallback(`Runner '${runnerId}' timed out after ${self.timeout}ms.`, null);
                                         }, self.timeout);
                                         scope.page.evaluate(runner.getRunnable(), (err) => {
