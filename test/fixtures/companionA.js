@@ -1,3 +1,3 @@
-window.companion = function companion() {
+window.companionA = function companion() {
     window.callPhantom(null, 'success');
 };

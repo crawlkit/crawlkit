@@ -315,11 +315,12 @@ describe('CrawlKit', function main() {
             const crawler = new CrawlKit(url);
             crawler.addRunner('companion', {
                 getCompanionFiles: () => [
-                    path.join(__dirname, 'fixtures/companion.js'),
+                    path.join(__dirname, 'fixtures/companionA.js'),
+                    path.join(__dirname, 'fixtures/companionB.js'),
                 ],
                 getRunnable: () => {
                     return function callingGlobalRunner() {
-                        window.companion();
+                        window.companionB();
                     };
                 },
             });
