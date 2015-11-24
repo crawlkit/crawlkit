@@ -1,5 +1,6 @@
 'use strict'; // eslint-disable-line
 const driver = require('node-phantom-simple');
+const HeadlessError = require('node-phantom-simple/headless_error');
 const phantomjs = require('phantomjs');
 const async = require('async');
 const d = require('debug');
@@ -369,8 +370,14 @@ class CrawlKit {
                                 scope.page.close();
                             }
                             if (scope.browser) {
-                                workerDebug(`Phantom released to pool.`);
-                                pool.release(scope.browser);
+                                if (err && (err instanceof HeadlessError)) {
+                                    // take no chances - if there was an error on Phantom side, we should get rid of the instance
+                                    workerInfo(`Phantom instance destroyed.`);
+                                    pool.destroy(scope.browser);
+                                } else {
+                                    workerDebug(`Phantom released to pool.`);
+                                    pool.release(scope.browser);
+                                }
                             }
                             workerFinished(err);
                             stopWorkerTimer();
