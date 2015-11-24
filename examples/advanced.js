@@ -8,7 +8,11 @@ const crawler = new CrawlKit(baseURL);
 
 crawler.finder = genericAnchors;
 crawler.urlFilter = function onlySameDomain(url) {
-    return urijs(url).domain() === urijs(baseURL).domain();
+    if (urijs(url).domain() !== urijs(baseURL).domain()) {
+        // discard URL
+        return false;
+    }
+    return url;
 };
 
 class TitleRunner {

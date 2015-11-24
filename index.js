@@ -267,10 +267,18 @@ class CrawlKit {
                                         urls.forEach((url) => {
                                             try {
                                                 const uri = new URI(url);
-                                                const absoluteUrl = uri.absoluteTo(new URI(task.url)).toString();
-                                                if (self.urlFilter && !self.urlFilter(absoluteUrl)) {
-                                                    workerDebug(`Discovered URL ${url} ignored due to URL filter.`);
-                                                    return;
+                                                const fromUri = new URI(task.url);
+                                                let absoluteUrl = uri.absoluteTo(fromUri).toString();
+                                                if (self.urlFilter) {
+                                                    const rewrittenUrl = self.urlFilter(absoluteUrl, task.url);
+                                                    if (rewrittenUrl === false) {
+                                                        workerDebug(`Discovered URL ${url} ignored due to URL filter.`);
+                                                        return;
+                                                    }
+                                                    if (rewrittenUrl !== absoluteUrl) {
+                                                        workerDebug(`${url} was rewritten to ${rewrittenUrl}.`);
+                                                        absoluteUrl = new URI(rewrittenUrl).absoluteTo(fromUri).toString();
+                                                    }
                                                 }
                                                 addUrl(absoluteUrl);
                                             } catch (e) {

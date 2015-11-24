@@ -181,22 +181,62 @@ describe('CrawlKit', function main() {
             });
         });
 
-        it('and filter the results', () => {
-            const crawler = new CrawlKit(url);
+        describe('urlFilter', () => {
+            it('and filter the results', () => {
+                const crawler = new CrawlKit(url);
 
-            const results = {};
-            results[`${url}/`] = {};
-            results[`${url}/other.html`] = {};
+                const results = {};
+                results[`${url}/`] = {};
+                results[`${url}/other.html`] = {};
 
-            crawler.finder = genericLinkFinder;
+                crawler.finder = genericLinkFinder;
 
-            const spy = sinon.spy((u) => u.indexOf('somehash') === -1);
-            crawler.urlFilter = spy;
+                const spy = sinon.spy((u) => {
+                  if (u.indexOf('somehash') !== -1) {
+                      return false;
+                  }
+                  return u;
+                });
+                crawler.urlFilter = spy;
 
-            return crawler.crawl().then((result) => {
-                spy.callCount.should.equal(2);
-                return result.results;
-            }).should.eventually.deep.equal(results);
+                return crawler.crawl().then((result) => {
+                    spy.callCount.should.equal(2);
+                    return result.results;
+                }).should.eventually.deep.equal(results);
+            });
+
+            it('and rewrite the results', () => {
+                const crawler = new CrawlKit(url);
+
+                const results = {};
+                results[`${url}/`] = {};
+                results[`${url}/redirected.html`] = {};
+                results[`${url}/other.html`] = {};
+
+                crawler.finder = genericLinkFinder;
+
+                crawler.urlFilter = (u) => {
+                  if (u.indexOf('somehash') !== -1) {
+                      return 'redirected.html';
+                  }
+                  return u;
+                };
+
+                return crawler.crawl().should.eventually.deep.equal({results});
+            });
+
+            it('should handle faulty rewrites', () => {
+                const crawler = new CrawlKit(url);
+
+                const results = {};
+                results[`${url}/`] = {};
+
+                crawler.finder = genericLinkFinder;
+
+                crawler.urlFilter = () => {};
+
+                return crawler.crawl().should.eventually.deep.equal({results});
+            });
         });
     });
 

@@ -25,7 +25,7 @@ An instance of CrawlKit has the following properties/methods:
 
 * `.url`: `String` the URL where the crawling/scraping is supposed to start. This is automatically set from the `CrawlKit` constructor, but can be changed afterwards.
 * `.finder`: `Function` allows you to set a method for link discovery that gets called on a page. See an example in `finders/genericAnchors.js`.
-* `.urlFilter`: `Function` allows you to set a method for filtering discovered URLs. For an example see `examples/advanced.js`.
+* `.urlFilter`: `Function` allows you to set a method for filtering and rewriting discovered URLs. The first parameter is the URL about to be added. The second parameter is the URL where this URL was discovered. Return `false` to discard the URL. Any other return value (as long as it is a valid URL) will be used instead. If you return a relative URL, it will be rewritten absolute to the URL where it was found. For an example see `examples/advanced.js`.
 * `.addRunner(runnerId, runnerInstance)`: `void` allows you to add a runner that is executed on each crawled page. A runner instance has to have a `getCompanionFiles` method returning an array of (local) file paths and a `getRunnable` method returning a method to run in the context of the webpage. For an example see `examples/simple.js`.
 * `.timeout`: `int` (ms) allows you to set the timeout for the finder and runners. The timeout starts fresh for each runner. Default is `10000` (10 seconds).
 * `.concurrency`: `int` allows you to define how many Phantom browsers are used in parallel. Defaults to `1`.
