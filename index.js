@@ -4,7 +4,7 @@ const HeadlessError = require('node-phantom-simple/headless_error');
 const phantomjs = require('phantomjs');
 const async = require('async');
 const d = require('debug');
-const URI = require('urijs');
+const urijs = require('urijs');
 const poolModule = require('generic-pool');
 const once = require('once');
 const NanoTimer = require('nanotimer');
@@ -231,7 +231,7 @@ class CrawlKit {
                                     scope.page.onNavigationRequested = (redirectedToUrl, type, willNavigate, mainFrame) => {
                                         workerDebug(`Page for ${task.url} asks for redirect`);
 
-                                        if (mainFrame && type === 'Other' && !(new URI(task.url).equals(redirectedToUrl))) {
+                                        if (mainFrame && type === 'Other' && !urijs(task.url).equals(redirectedToUrl)) {
                                             addUrl(redirectedToUrl);
                                             const err = `page for ${task.url} redirected to ${redirectedToUrl}`;
                                             done(err, scope);
@@ -266,8 +266,8 @@ class CrawlKit {
                                         workerInfo(`Finder discovered ${urls.length} URLs.`);
                                         urls.forEach((url) => {
                                             try {
-                                                const uri = new URI(url);
-                                                const fromUri = new URI(task.url);
+                                                const uri = urijs(url);
+                                                const fromUri = urijs(task.url);
                                                 let absoluteUrl = uri.absoluteTo(fromUri).toString();
                                                 if (self.urlFilter) {
                                                     const rewrittenUrl = self.urlFilter(absoluteUrl, task.url);
@@ -277,7 +277,7 @@ class CrawlKit {
                                                     }
                                                     if (rewrittenUrl !== absoluteUrl) {
                                                         workerDebug(`${url} was rewritten to ${rewrittenUrl}.`);
-                                                        absoluteUrl = new URI(rewrittenUrl).absoluteTo(fromUri).toString();
+                                                        absoluteUrl = urijs(rewrittenUrl).absoluteTo(fromUri).toString();
                                                     }
                                                 }
                                                 addUrl(absoluteUrl);
@@ -407,7 +407,7 @@ class CrawlKit {
                 };
 
                 addUrl = (u) => {
-                    let url = new URI(u);
+                    let url = urijs(u);
                     url = url.absoluteTo(self.defaultAbsoluteTo);
                     url.normalize();
                     url = url.toString();
