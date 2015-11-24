@@ -1,4 +1,9 @@
-# CrawlKit [![Build Status](https://travis-ci.org/crawlkit/crawlkit.svg?branch=master)](https://travis-ci.org/crawlkit/crawlkit)
+# CrawlKit
+[![Build status](https://img.shields.io/travis/crawlkit/crawlkit/master.svg)](https://travis-ci.org/crawlkit/crawlkit)
+[![npm](https://img.shields.io/npm/v/crawlkit.svg)](https://github.com/crawlkit/crawlkit)
+[![npm](https://img.shields.io/npm/l/crawlkit.svg)]()
+[![David](https://img.shields.io/david/crawlkit/crawlkit.svg)]()
+[![node](https://img.shields.io/node/v/crawlkit.svg)]()
 
 A crawler based on PhantomJS. Allows discovery of dynamic content and supports custom scrapers. For all your ajaxy crawling & scraping needs.
 
