@@ -1,6 +1,6 @@
 # CrawlKit
 [![Build status](https://img.shields.io/travis/crawlkit/crawlkit/master.svg)](https://travis-ci.org/crawlkit/crawlkit)
-[![npm](https://img.shields.io/npm/v/crawlkit.svg)](https://github.com/crawlkit/crawlkit)
+[![npm](https://img.shields.io/npm/v/crawlkit.svg)](https://www.npmjs.com/package/crawlkit)
 [![npm](https://img.shields.io/npm/l/crawlkit.svg)]()
 [![David](https://img.shields.io/david/crawlkit/crawlkit.svg)]()
 [![node](https://img.shields.io/node/v/crawlkit.svg)]()
@@ -11,6 +11,11 @@ A crawler based on PhantomJS. Allows discovery of dynamic content and supports c
 * Supports custom-defined link discovery.
 * Supports custom-defined runners (scrape, test, validate, etc.)
 * Supports following redirects (and because it's based on PhantomJS, JavaScript redirects will be followed as well as `<meta>` redirects.)
+
+## Install
+```console
+npm install crawlkit --save
+```
 
 ## Usage
 ```javascript
