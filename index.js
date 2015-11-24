@@ -184,9 +184,8 @@ class CrawlKit {
                     const workerError = d(`${workerLogPrefix}:error`);
                     const workerTimer = new NanoTimer();
 
+                    workerInfo('Started on %s - %s task(s) left in the queue.', task.url, q.length());
                     workerTimer.time((stopWorkerTimer) => {
-                        workerInfo('Started on %s', task.url);
-
                         async.waterfall([
                             function acquireBrowserFromPool(done) {
                                 pool.acquire((err, browser) => {
@@ -366,9 +365,11 @@ class CrawlKit {
                                 task.result.error = err;
                             }
                             if (scope.page) {
+                                workerDebug(`Page closed.`);
                                 scope.page.close();
                             }
                             if (scope.browser) {
+                                workerDebug(`Phantom released to pool.`);
                                 pool.release(scope.browser);
                             }
                             stopWorkerTimer();
@@ -405,8 +406,6 @@ class CrawlKit {
                             url,
                             result,
                             id: new Chance().name(),
-                        }, () => {
-                            info('There are %s tasks left in the queue.', q.length());
                         });
                     } else {
                         debug(`Skipping ${url} - already seen.`);
