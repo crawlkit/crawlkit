@@ -174,9 +174,9 @@ class CrawlKit {
         });
 
         return new Promise(function workOnPage(resolve) {
+          const seen = new Map();
             crawlTimer.time((stopCrawlTimer) => {
                 let addUrl;
-                const seen = new Map();
                 const q = async.queue(function queueWorker(task, workerFinished) {
                     const workerLogPrefix = `crawlkit:task(${task.id})`;
                     const workerDebug = d(`${workerLogPrefix}:debug`);
@@ -372,8 +372,8 @@ class CrawlKit {
                                 workerDebug(`Phantom released to pool.`);
                                 pool.release(scope.browser);
                             }
-                            stopWorkerTimer();
                             workerFinished(err);
+                            stopWorkerTimer();
                         });
                     }, '', 'm', (workerRuntime) => {
                         workerInfo('Finished. Took %sms.', workerRuntime);
@@ -382,7 +382,6 @@ class CrawlKit {
 
                 q.drain = () => {
                     stopCrawlTimer();
-                    info(`Workers finished. Processed ${seen.size} discovered URLs.`);
                     pool.drain(function drainPool() {
                         pool.destroyAllNow();
                     });
@@ -414,7 +413,7 @@ class CrawlKit {
 
                 addUrl(self.url);
             }, '', 's', (time) => {
-              info('Crawling/scraping took %ss.', time);
+              info(`Finished. Processed ${seen.size} discovered URLs. Took ${time}s.`);
             });
         });
     }
