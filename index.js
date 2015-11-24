@@ -168,7 +168,7 @@ class CrawlKit {
             max: self.concurrency,
             min: 1,
             log: (message, level) => {
-                poolDebug[level] = poolDebug[level] || d(`pool:${level}`);
+                poolDebug[level] = poolDebug[level] || d(`crawlkit:pool:phantomjs:${level}`);
                 poolDebug[level](message);
             },
         });
