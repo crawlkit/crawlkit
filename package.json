@@ -4,6 +4,15 @@
   "description": "A crawler based on Phantom. Allows discovery of dynamic content and supports custom scrapers.",
   "main": "index.js",
   "repository": "https://github.com/crawlkit/crawlkit.git",
+  "keywords": [
+    "accessibility",
+    "a11y",
+    "crawler",
+    "webkit",
+    "phantom",
+    "ajax",
+    "scraping"
+  ],
   "scripts": {
     "test": "mocha",
     "lint": "eslint .",
