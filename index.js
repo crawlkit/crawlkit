@@ -335,18 +335,22 @@ class CrawlKit {
                                     const runner = runnerObj.runner;
                                     const parameters = runnerObj.parameters;
 
-                                    Promise.all((runner.getCompanionFiles() || []).map((filename) => {
-                                        return new Promise((injected, reject) => {
-                                            scope.page.injectJs(filename, (err) => {
-                                                if (err) {
-                                                    workerError(`Failed to inject companion file '${filename}' for runner '${runnerId}' on ${task.url}`);
-                                                    return reject(err);
-                                                }
-                                                workerDebug(`Injected companion file '${filename}' for runner '${runnerId}' on ${task.url}`);
-                                                injected();
-                                            });
-                                        });
-                                    })).then(function run() {
+                                    Promise.resolve(runner.getCompanionFiles())
+                                    .then((companionFiles) => {
+                                      return Promise.all((companionFiles || []).map((filename) => {
+                                          return new Promise((injected, reject) => {
+                                              scope.page.injectJs(filename, (err) => {
+                                                  if (err) {
+                                                      workerError(`Failed to inject companion file '${filename}' for runner '${runnerId}' on ${task.url}`);
+                                                      return reject(err);
+                                                  }
+                                                  workerDebug(`Injected companion file '${filename}' for runner '${runnerId}' on ${task.url}`);
+                                                  injected();
+                                              });
+                                          });
+                                      }));
+                                    }, done)
+                                    .then(function run() {
                                         const runnerLogPrefix = `${workerLogPrefix}:runner(${runnerId})`;
                                         const runnerConsole = d(`${runnerLogPrefix}:console:debug`);
                                         const runnerInfo = d(`${runnerLogPrefix}:info`);
