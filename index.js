@@ -81,11 +81,17 @@ class CrawlKit {
         return this[urlFilterKey];
     }
 
-    addRunner(key, runner) {
+    addRunner(key, runner /* args ... */) {
         if (typeof runner.getCompanionFiles !== 'function' || typeof runner.getRunnable !== 'function') {
             throw new Error('Not a valid runner instance');
         }
-        this[runnerKey].set(key, runner);
+
+        const parameters = Array.prototype.slice.call(arguments, 2);
+
+        this[runnerKey].set(key, {
+          runner,
+          parameters,
+        });
     }
 
     getRunners() {
@@ -325,7 +331,10 @@ class CrawlKit {
                                     }
                                     let timeoutHandler;
                                     const runnerId = next.value[0];
-                                    const runner = next.value[1];
+                                    const runnerObj = next.value[1];
+                                    const runner = runnerObj.runner;
+                                    const parameters = runnerObj.parameters;
+
                                     Promise.all((runner.getCompanionFiles() || []).map((filename) => {
                                         return new Promise((injected, reject) => {
                                             scope.page.injectJs(filename, (err) => {
@@ -362,13 +371,15 @@ class CrawlKit {
                                         timeoutHandler = setTimeout(() => {
                                             phantomCallback(`Runner '${runnerId}' timed out after ${self.timeout}ms.`, null);
                                         }, self.timeout);
-                                        scope.page.evaluate(runner.getRunnable(), (err) => {
+                                        const params = [runner.getRunnable()].concat(parameters);
+                                        params.push((err) => {
                                             if (err) {
                                                 clearTimeout(timeoutHandler);
                                                 return done(err);
                                             }
                                             workerDebug(`Runner '${runnerId}' evaluated`);
                                         });
+                                        scope.page.evaluate.apply(scope.page, params);
                                     }, done);
                                 };
                                 nextRunner();
