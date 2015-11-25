@@ -9,6 +9,7 @@ const poolModule = require('generic-pool');
 const once = require('once');
 const NanoTimer = require('nanotimer');
 const Chance = require('chance');
+const JSONStream = require('JSONStream');
 
 const debug = d('crawlkit:debug');
 const info = d('crawlkit:info');
@@ -133,9 +134,14 @@ class CrawlKit {
       return this[browserCookiesKey] || [];
     }
 
-    crawl() {
+    crawl(shouldStream) {
         const self = this;
         const crawlTimer = new NanoTimer();
+        let stream;
+        if (shouldStream) {
+            stream = JSONStream.stringifyObject();
+        }
+
 
         info(`Starting to crawl. Concurrency is %s`, self.concurrency);
         const pool = poolModule.Pool({ // eslint-disable-line
@@ -183,7 +189,7 @@ class CrawlKit {
             },
         });
 
-        return new Promise(function workOnPage(resolve) {
+        const promise = new Promise(function workOnPage(resolve) {
           const seen = new Map();
             crawlTimer.time((stopCrawlTimer) => {
                 let addUrl;
@@ -393,6 +399,10 @@ class CrawlKit {
                                 workerError(err);
                                 task.result.error = err;
                             }
+                            if (shouldStream) {
+                                stream.write([task.url, task.result]);
+                            }
+
                             if (scope.page) {
                                 workerDebug(`Page closed.`);
                                 scope.page.close();
@@ -420,10 +430,15 @@ class CrawlKit {
                     pool.drain(function drainPool() {
                         pool.destroyAllNow();
                     });
-                    const result = {
-                        results: transformMapToObject(seen),
-                    };
-                    resolve(result);
+                    if (shouldStream) {
+                        stream.end();
+                        resolve();
+                    } else {
+                        const result = {
+                            results: transformMapToObject(seen),
+                        };
+                        resolve(result);
+                    }
                 };
 
                 addUrl = (u) => {
@@ -435,7 +450,8 @@ class CrawlKit {
                     if (!seen.has(url)) {
                         info(`Adding ${url}`);
                         const result = {};
-                        seen.set(url, result);
+                        // don't keep result in memory if we stream
+                        seen.set(url, shouldStream ? null : result);
                         q.push({
                             url,
                             result,
@@ -451,6 +467,7 @@ class CrawlKit {
               info(`Finished. Processed ${seen.size} discovered URLs. Took ${time}s.`);
             });
         });
+        return shouldStream ? stream : promise;
     }
 }
 

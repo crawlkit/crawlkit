@@ -548,4 +548,36 @@ describe('CrawlKit', function main() {
             return crawler.crawl().should.eventually.deep.equal({results});
         });
     });
+
+    describe('streaming', () => {
+        it('should be possible to read from the stream', (done) => {
+            const crawler = new CrawlKit(url);
+
+            crawler.finder = genericLinkFinder;
+
+            crawler.addRunner('agent', {
+                getCompanionFiles: () => [],
+                getRunnable: () => {
+                    return function xRunner() {
+                        window.callPhantom(null, 'X');
+                    };
+                },
+            });
+
+            const results = {};
+            results[`${url}/`] = {runners: {agent: {result: 'X'}}};
+            results[`${url}/#somehash`] = {runners: {agent: {result: 'X'}}};
+            results[`${url}/other.html`] = {runners: {agent: {result: 'X'}}};
+            const stream = crawler.crawl(true);
+
+            let streamed = '';
+            stream.on('data', (data) => {
+                streamed += data;
+            });
+            stream.on('end', () => {
+                JSON.parse(streamed).should.deep.equal(results);
+                done();
+            });
+        });
+    });
 });
