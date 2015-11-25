@@ -354,6 +354,74 @@ describe('CrawlKit', function main() {
             };
             return crawler.crawl().should.eventually.deep.equal({results});
         });
+
+        describe('Parameters', () => {
+            it('should accept one parameter', () => {
+                const crawler = new CrawlKit(url);
+                crawler.addRunner('param', {
+                    getCompanionFiles: () => [],
+                    getRunnable: () => {
+                        return function callingGlobalRunner(a) {
+                            window.callPhantom(null, a);
+                        };
+                    },
+                }, 'a');
+
+                const results = {};
+                results[`${url}/`] = {
+                    runners: {
+                        param: {
+                            result: 'a',
+                        },
+                    },
+                };
+                return crawler.crawl().should.eventually.deep.equal({results});
+            });
+
+            it('should accept multiple parameters', () => {
+                const crawler = new CrawlKit(url);
+                crawler.addRunner('param', {
+                    getCompanionFiles: () => [],
+                    getRunnable: () => {
+                        return function callingGlobalRunner(a, b, c) {
+                            window.callPhantom(null, [a, b, c]);
+                        };
+                    },
+                }, 'a', 'b', 'c');
+
+                const results = {};
+                results[`${url}/`] = {
+                    runners: {
+                        param: {
+                            result: ['a', 'b', 'c'],
+                        },
+                    },
+                };
+                return crawler.crawl().should.eventually.deep.equal({results});
+            });
+
+            it('should default missing parameters to undefined', () => {
+                const crawler = new CrawlKit(url);
+                crawler.addRunner('param', {
+                    getCompanionFiles: () => [],
+                    getRunnable: () => {
+                        return function callingGlobalRunner(a) {
+                            window.callPhantom(null, typeof a === 'undefined');
+                        };
+                    },
+                });
+
+                const results = {};
+                results[`${url}/`] = {
+                    runners: {
+                        param: {
+                            result: true,
+                        },
+                    },
+                };
+                return crawler.crawl().should.eventually.deep.equal({results});
+            });
+        });
     });
 
     describe('redirects', () => {

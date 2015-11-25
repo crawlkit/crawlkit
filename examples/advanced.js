@@ -21,13 +21,15 @@ class TitleRunner {
     }
 
     getRunnable() {
-        return function extractTitle() {
-            window.callPhantom(null, document.title);
+        return function extractTitle(delay) {
+            window.setTimeout(function delayedWork() {
+                window.callPhantom(null, document.title);
+            }, delay);
         };
     }
 }
 
-crawler.addRunner('title', new TitleRunner());
+crawler.addRunner('title', new TitleRunner(), 1000);
 
 crawler.crawl().then((results) => {
     console.log(JSON.stringify(results, true, 2));
