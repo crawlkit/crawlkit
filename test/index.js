@@ -311,29 +311,56 @@ describe('CrawlKit', function main() {
             return crawler.crawl().should.eventually.deep.equal({results});
         });
 
-        it('should load companion files', () => {
-            const crawler = new CrawlKit(url);
-            crawler.addRunner('companion', {
-                getCompanionFiles: () => [
-                    path.join(__dirname, 'fixtures/companionA.js'),
-                    path.join(__dirname, 'fixtures/companionB.js'),
-                ],
-                getRunnable: () => {
-                    return function callingGlobalRunner() {
-                        window.companionB();
-                    };
-                },
+        describe.only('companion files', () => {
+            it('synchronously', () => {
+                const crawler = new CrawlKit(url);
+                crawler.addRunner('companion', {
+                    getCompanionFiles: () => [
+                        path.join(__dirname, 'fixtures/companionA.js'),
+                        path.join(__dirname, 'fixtures/companionB.js'),
+                    ],
+                    getRunnable: () => {
+                        return function callingGlobalRunner() {
+                            window.companionB();
+                        };
+                    },
+                });
+
+                const results = {};
+                results[`${url}/`] = {
+                    runners: {
+                        companion: {
+                            result: 'success',
+                        },
+                    },
+                };
+                return crawler.crawl().should.eventually.deep.equal({results});
             });
 
-            const results = {};
-            results[`${url}/`] = {
-                runners: {
-                    companion: {
-                        result: 'success',
+            it('async with a Promise', () => {
+                const crawler = new CrawlKit(url);
+                crawler.addRunner('companion', {
+                    getCompanionFiles: () => Promise.resolve([
+                        path.join(__dirname, 'fixtures/companionA.js'),
+                        path.join(__dirname, 'fixtures/companionB.js'),
+                    ]),
+                    getRunnable: () => {
+                        return function callingGlobalRunner() {
+                            window.companionB();
+                        };
                     },
-                },
-            };
-            return crawler.crawl().should.eventually.deep.equal({results});
+                });
+
+                const results = {};
+                results[`${url}/`] = {
+                    runners: {
+                        companion: {
+                            result: 'success',
+                        },
+                    },
+                };
+                return crawler.crawl().should.eventually.deep.equal({results});
+            });
         });
 
         it('should time out', () => {
