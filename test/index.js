@@ -311,7 +311,7 @@ describe('CrawlKit', function main() {
             return crawler.crawl().should.eventually.deep.equal({results});
         });
 
-        describe.only('companion files', () => {
+        describe('companion files', () => {
             it('synchronously', () => {
                 const crawler = new CrawlKit(url);
                 crawler.addRunner('companion', {
