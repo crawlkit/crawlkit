@@ -2,7 +2,7 @@
   "name": "crawlkit",
   "version": "1.3.0",
   "description": "A crawler based on Phantom. Allows discovery of dynamic content and supports custom scrapers.",
-  "main": "index.js",
+  "main": "src/index.js",
   "repository": "https://github.com/crawlkit/crawlkit.git",
   "keywords": [
     "accessibility",
@@ -14,6 +14,7 @@
     "scraping"
   ],
   "scripts": {
+    "docs": "jsdoc -c conf.json",
     "test": "mocha",
     "lint": "eslint .",
     "tdd": "mocha --watch --reporter min",
@@ -46,6 +47,7 @@
     "http-auth": "^2.2.8",
     "http-proxy": "^1.12.0",
     "http-server": "^0.8.5",
+    "jsdoc": "^3.4.0",
     "mocha": "^2.3.4",
     "sinon": "^1.17.2",
     "sinon-chai": "^2.8.0"
