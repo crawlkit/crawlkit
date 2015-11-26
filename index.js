@@ -506,7 +506,14 @@ class CrawlKit {
               info(`Finished. Processed ${seen.size} discovered URLs. Took ${time}s.`);
             });
         });
-        return shouldStream ? stream : promise;
+        if (shouldStream) {
+            promise.catch((err) => {
+                error(err);
+                throw err;
+            });
+            return stream;
+        }
+        return promise;
     }
 }
 
