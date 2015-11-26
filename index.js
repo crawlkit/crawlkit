@@ -455,8 +455,8 @@ class CrawlKit {
                                 delete task.result.error;
                                 q.unshift(task);
                             }
-                            workerFinished(err);
                             stopWorkerTimer();
+                            workerFinished(err);
                         });
                     }, '', 'm', (workerRuntime) => {
                         workerInfo('Finished. Took %sms.', workerRuntime);
