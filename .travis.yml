@@ -7,3 +7,4 @@ script:
   - npm test
   - travis_retry node examples/advanced.js
   - travis_retry node examples/simple.js
+  - travis_retry npm link && npm link crawlkit --silent && node examples/tonic.js

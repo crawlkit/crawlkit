@@ -7,6 +7,7 @@ const baseURL = 'http://www.feth.com';
 
 class SameDomainLinkFinder {
     getRunnable() {
+        // the function returned here runs within the webpage. No closures, etc.
         return genericAnchors;
     }
 
@@ -21,10 +22,11 @@ class SameDomainLinkFinder {
 
 class TitleRunner {
     getCompanionFiles() {
-        return [];
+        return Promise.resolve([]);
     }
 
     getRunnable() {
+        // the function returned here runs within the webpage. No closures, etc.
         return function extractTitle(delay) {
             window.setTimeout(function delayedWork() {
                 window.callPhantom(null, document.title);

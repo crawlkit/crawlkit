@@ -226,7 +226,7 @@ class CrawlKit {
                     const workerTimer = new NanoTimer();
 
                     info(`Worker started - ${q.length()} task(s) left in the queue.`);
-                    workerInfo(`Took ${task.url} from queue (attempt ${task.tries}).`);
+                    workerInfo(`Took ${task.url} from queue` + (task.tries > 1 ? ` (attempt ${task.tries})` : '') + '.');
                     workerTimer.time((stopWorkerTimer) => {
                         async.waterfall([
                             function acquireBrowserFromPool(done) {
