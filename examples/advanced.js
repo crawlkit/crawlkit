@@ -21,7 +21,7 @@ class SameDomainLinkFinder {
 
 class TitleRunner {
     getCompanionFiles() {
-        return [];
+        return Promise.resolve([]);
     }
 
     getRunnable() {
