@@ -21,7 +21,6 @@ const urlKey = Symbol();
 const finderKey = Symbol();
 const timeoutKey = Symbol();
 const runnerKey = Symbol();
-const urlFilterKey = Symbol();
 const phantomParamsKey = Symbol();
 const phantomPageSettingsKey = Symbol();
 const followRedirectsKey = Symbol();
@@ -36,11 +35,31 @@ function transformMapToObject(map) {
     return result;
 }
 
+function getFinder(crawlerInstance) {
+    return crawlerInstance[finderKey].finder;
+}
+
+function getFinderRunnable(crawlerInstance) {
+    if (!getFinder(crawlerInstance)) {
+        return null;
+    }
+    return getFinder(crawlerInstance).getRunnable() || null;
+}
+
+function getUrlFilter(crawlerInstance) {
+    return getFinder(crawlerInstance).urlFilter || null;
+}
+
+function getFinderParameters(crawlerInstance) {
+    return crawlerInstance[finderKey].parameters || [];
+}
+
 class CrawlKit {
     constructor(url) {
         this.url = url;
         this.defaultAbsoluteTo = 'http://';
         this[runnerKey] = new Map();
+        this[finderKey] = {};
     }
 
     set timeout(num) {
@@ -67,20 +86,13 @@ class CrawlKit {
         return this[urlKey];
     }
 
-    set finder(fn) {
-        this[finderKey] = (typeof fn === 'function') ? fn : null;
-    }
+    setFinder(finder /* parameters... */) {
+        if (!finder || typeof finder.getRunnable !== 'function') {
+            throw new Error('Not a valid finder instance');
+        }
 
-    get finder() {
-        return this[finderKey];
-    }
-
-    set urlFilter(fn) {
-        this[urlFilterKey] = (typeof fn === 'function') ? fn : null;
-    }
-
-    get urlFilter() {
-        return this[urlFilterKey];
+        this[finderKey].finder = finder;
+        this[finderKey].parameters = Array.prototype.slice.call(arguments, 1);
     }
 
     set retries(n) {
@@ -92,7 +104,10 @@ class CrawlKit {
     }
 
     addRunner(key, runner /* args ... */) {
-        if (typeof runner.getCompanionFiles !== 'function' || typeof runner.getRunnable !== 'function') {
+        if (!key) {
+            throw new Error('Not a valid runner key');
+        }
+        if (!runner || typeof runner.getCompanionFiles !== 'function' || typeof runner.getRunnable !== 'function') {
             throw new Error('Not a valid runner instance');
         }
 
@@ -276,14 +291,15 @@ class CrawlKit {
                                 });
                             },
                             function findLinks(scope, cb) {
+                                if (!getFinder(self)) {
+                                    return cb(null, scope);
+                                }
+
                                 let timeoutHandler;
                                 const done = once((err) => {
                                     clearTimeout(timeoutHandler);
                                     cb(err, scope);
                                 });
-                                if (!self.finder) {
-                                    return done();
-                                }
                                 function phantomCallback(err, urls) {
                                     if (err) {
                                         return done(err);
@@ -295,8 +311,8 @@ class CrawlKit {
                                                 const uri = urijs(url);
                                                 const fromUri = urijs(task.url);
                                                 let absoluteUrl = uri.absoluteTo(fromUri).toString();
-                                                if (self.urlFilter) {
-                                                    const rewrittenUrl = self.urlFilter(absoluteUrl, task.url);
+                                                if (typeof getUrlFilter(self) === 'function') {
+                                                    const rewrittenUrl = getUrlFilter(self)(absoluteUrl, task.url);
                                                     if (rewrittenUrl === false) {
                                                         workerDebug(`Discovered URL ${url} ignored due to URL filter.`);
                                                         return;
@@ -321,13 +337,15 @@ class CrawlKit {
                                 timeoutHandler = setTimeout(() => {
                                     phantomCallback(`Finder timed out after ${self.timeout}ms.`, null);
                                 }, self.timeout);
-                                scope.page.evaluate(self.finder, (err) => {
+                                const params = [getFinderRunnable(self)].concat(getFinderParameters(self));
+                                params.push((err) => {
                                     if (err) {
                                         clearTimeout(timeoutHandler);
                                         return done(err);
                                     }
                                     workerDebug(`Finder code evaluated`);
                                 });
+                                scope.page.evaluate.apply(scope.page, params);
                             },
                             function pageRunners(scope, cb) {
                                 const done = once((err) => {

@@ -4,16 +4,20 @@ const genericAnchors = require('../finders/genericAnchors');
 const urijs = require('urijs');
 
 const baseURL = 'http://www.feth.com';
-const crawler = new CrawlKit(baseURL);
 
-crawler.finder = genericAnchors;
-crawler.urlFilter = function onlySameDomain(url) {
-    if (urijs(url).domain() !== urijs(baseURL).domain()) {
-        // discard URL
-        return false;
+class SameDomainLinkFinder {
+    getRunnable() {
+        return genericAnchors;
     }
-    return url;
-};
+
+    urlFilter() {
+        if (urijs(url).domain() !== urijs(baseURL).domain()) {
+            // not same domain - discard URL
+            return false;
+        }
+        return url;
+    }
+}
 
 class TitleRunner {
     getCompanionFiles() {
@@ -29,6 +33,9 @@ class TitleRunner {
     }
 }
 
+
+const crawler = new CrawlKit(baseURL);
+crawler.setFinder(new SameDomainLinkFinder());
 crawler.addRunner('title', new TitleRunner(), 1000);
 
 crawler.crawl().then((results) => {
