@@ -1,5 +1,5 @@
 'use strict';
-const CrawlKit = require('../');
+const CrawlKit = require('crawlkit');
 
 const baseURL = 'https://www.google.com';
 const crawler = new CrawlKit(baseURL);

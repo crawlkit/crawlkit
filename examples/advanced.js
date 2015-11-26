@@ -1,5 +1,5 @@
 'use strict';
-const CrawlKit = require('../');
+const CrawlKit = require('crawlkit');
 const genericAnchors = require('../finders/genericAnchors');
 const urijs = require('urijs');
 

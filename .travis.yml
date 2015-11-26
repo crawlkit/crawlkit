@@ -5,6 +5,7 @@ node_js:
 script:
   - npm run lint
   - npm test
+  - npm link --silent && npm link crawlkit --silent
   - travis_retry node examples/advanced.js
   - travis_retry node examples/simple.js
-  - travis_retry npm link && npm link crawlkit --silent && node examples/tonic.js
+  - travis_retry node examples/tonic.js
