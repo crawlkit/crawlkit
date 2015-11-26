@@ -54,6 +54,10 @@ function getFinderParameters(crawlerInstance) {
     return crawlerInstance[finderKey].parameters || [];
 }
 
+function getRunners(crawlerInstance) {
+    return crawlerInstance[runnerKey];
+}
+
 class CrawlKit {
     constructor(url) {
         this.url = url;
@@ -117,10 +121,6 @@ class CrawlKit {
           runner,
           parameters,
         });
-    }
-
-    getRunners() {
-        return this[runnerKey];
     }
 
     set phantomParameters(params) {
@@ -352,11 +352,11 @@ class CrawlKit {
                                     cb(err, scope);
                                 });
 
-                                if (self.getRunners().size === 0) {
+                                if (getRunners(self).size === 0) {
                                     workerDebug('No runners defined');
                                     return done();
                                 }
-                                const runnerIterator = self.getRunners()[Symbol.iterator]();
+                                const runnerIterator = getRunners(self)[Symbol.iterator]();
                                 const results = task.result.runners = {};
                                 const nextRunner = () => {
                                     const next = runnerIterator.next();
