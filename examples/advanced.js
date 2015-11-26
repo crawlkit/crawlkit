@@ -6,7 +6,7 @@ const urijs = require('urijs');
 const baseURL = 'http://www.feth.com';
 const crawler = new CrawlKit(baseURL);
 
-crawler.finder = genericAnchors;
+crawler.setFinder(genericAnchors);
 crawler.urlFilter = function onlySameDomain(url) {
     if (urijs(url).domain() !== urijs(baseURL).domain()) {
         // discard URL

@@ -36,11 +36,20 @@ function transformMapToObject(map) {
     return result;
 }
 
+function getFinder(crawlerInstance) {
+    return crawlerInstance[finderKey].finder;
+}
+
+function getFinderParameters(crawlerInstance) {
+    return crawlerInstance[finderKey].parameters;
+}
+
 class CrawlKit {
     constructor(url) {
         this.url = url;
         this.defaultAbsoluteTo = 'http://';
         this[runnerKey] = new Map();
+        this[finderKey] = {};
     }
 
     set timeout(num) {
@@ -67,12 +76,9 @@ class CrawlKit {
         return this[urlKey];
     }
 
-    set finder(fn) {
-        this[finderKey] = (typeof fn === 'function') ? fn : null;
-    }
-
-    get finder() {
-        return this[finderKey];
+    setFinder(fn) {
+        this[finderKey].finder = (typeof fn === 'function') ? fn : null;
+        this[finderKey].parameters = Array.prototype.slice.call(arguments, 1);
     }
 
     set urlFilter(fn) {
@@ -281,7 +287,7 @@ class CrawlKit {
                                     clearTimeout(timeoutHandler);
                                     cb(err, scope);
                                 });
-                                if (!self.finder) {
+                                if (!getFinder(self)) {
                                     return done();
                                 }
                                 function phantomCallback(err, urls) {
@@ -321,13 +327,15 @@ class CrawlKit {
                                 timeoutHandler = setTimeout(() => {
                                     phantomCallback(`Finder timed out after ${self.timeout}ms.`, null);
                                 }, self.timeout);
-                                scope.page.evaluate(self.finder, (err) => {
+                                const params = [getFinder(self)].concat(getFinderParameters(self));
+                                params.push((err) => {
                                     if (err) {
                                         clearTimeout(timeoutHandler);
                                         return done(err);
                                     }
                                     workerDebug(`Finder code evaluated`);
                                 });
+                                scope.page.evaluate.apply(scope.page, params);
                             },
                             function pageRunners(scope, cb) {
                                 const done = once((err) => {
