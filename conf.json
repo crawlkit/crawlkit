@@ -1,0 +1,15 @@
+{
+    "source": {
+        "include": [ "./src", "./finders"],
+        "includePattern": ".+\\.js$"
+    },
+    "opts": {
+        "destination": "./docs/",
+        "recurse": true,
+        "package": "package.json",
+        "verbose": true
+    },
+    "templates": {
+        "cleverLinks": true
+    }
+}

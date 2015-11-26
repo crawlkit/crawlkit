@@ -35,20 +35,7 @@ crawler.crawl()
 ```
 
 ## API
-An instance of CrawlKit has the following properties/methods:
-
-* `.url`: `String` the URL where the crawling/scraping is supposed to start. This is automatically set from the `CrawlKit` constructor, but can be changed afterwards.
-* `.setFinder(finderInstance, [parameters...])`: Allows you to set a finder instance for link discovery that gets called on a page after page load. The finder instance must have a method `getRunnable` defined, which is used for link discovery. This method should call back with an array of discovered URLs. See an example of a valid function returned by `getRunnable` in `finders/genericAnchors.js`. Optionally parameters can be passed to that function by passing them after the finder instance parameter to `.setFinder`. Keep in mind that finder functions run in the webpage (and as such are restricted to browser features) and can not use closures, etc. The finder instance can optionally have a `urlFilter` method that allows you to filter and rewrite discovered URLs. The first parameter to that function is the URL about to be added. The second parameter is the URL where this URL was discovered. Return `false` to discard the URL. Any other return value (as long as it is a valid URL) will be used instead. If you return a relative URL, it will be rewritten absolute to the URL where it was found. This method is run in node space and so can use all features and closures available there. For an example of using the `.setFinder()` method, see `examples/advanced.js`.
-* `.crawl(shouldStream)`: If `shouldStream` is false (default), it returns a Promise object that resolves to the result. If `shouldStream` is true, it returns a JSON stream of the results.
-* `.addRunner(runnerId, runnerInstance, [parameters...])`: `void` allows you to add a runner that is executed on each crawled page. A runner instance has to have a `getCompanionFiles` method returning an array of (local) file paths or a Promise resolving to one and a `getRunnable` method returning a method to run in the context of the webpage. As a third argument optionally one or more parameters can be passed. For an example see `examples/simple.js`. For an example using parameters, see `examples/advanced.js`.
-* `.timeout`: `int` (ms) allows you to set the timeout for the finder and runners. The timeout starts fresh for each runner. Default is `10000` (10 seconds).
-* `.concurrency`: `int` allows you to define how many Phantom browsers are used in parallel. Defaults to `1`.
-* `.defaultAbsoluteTo`: `String` this is where a URL gets rewritten to if it is absolute, but doesn't have a protocol. Defaults to `http://`.
-* `.phantomParameters`: `Object` map of parameters to pass to PhantomJS. You can use this for example to ignore SSL errors. For a list of parameters, please refer to the [PhantomJS documentation](http://phantomjs.org/api/command-line.html).
-* `.phantomPageSettings`: `Object` map of settings to pass to an opened page. You can use this for example for Basic Authentication. For a list of options, please refer to the [PhantomJS documentation](http://phantomjs.org/api/webpage/property/settings.html).
-* `.followRedirects`: `boolean` whether to follow redirects or not. When following redirects, the original page is not processed. Defaults to `false`.
-* `.browserCookies`: `Array` Cookies to set within PhantomJS. Each entry in the array is supposed to be an object [following the PhantomJS spec](http://phantomjs.org/api/webpage/method/add-cookie.html). Empty by default.
-* `.retries`: `int` How often to try working on the according page in case of PhantomJS crashing. Defaults to 3.
+See the [API docs](http://crawlkit.github.io/crawlkit/docs/crawlkit/1.3.0/).
 
 ## Debugging
 CrawlKit uses [debug](https://github.com/visionmedia/debug) for debugging purposes. In short, you can add `DEBUG="*"` as an environment variable before starting your app to get all the logs. A more sane configuration is probably `DEBUG="crawlkit:info,crawlkit*:error"` if your page is big.

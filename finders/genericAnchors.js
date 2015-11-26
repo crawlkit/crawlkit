@@ -1,4 +1,12 @@
-module.exports = function genericAnchors(delay) {
+/**
+* A method that extracts all href's from any anchor on the page.
+* Can be used as the return value of {@link Finder#getRunnable}.
+* The delay can be set through the parameters via {@link CrawlKit#setFinder}.
+*
+* @module finders.genericAnchors
+* @param {integer} [delay=0] The delay after which the function searches for anchors.
+*/
+function genericAnchors(delay) {
     delay = Math.max(0, parseInt(delay, 10) || 0);
 
     window.setTimeout(function findAnchors() {
@@ -8,3 +16,5 @@ module.exports = function genericAnchors(delay) {
         window.callPhantom(null, urls);
     }, delay);
 };
+
+module.exports = genericAnchors;
