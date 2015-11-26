@@ -9,6 +9,7 @@ const freeport = require('freeport');
 const auth = require('http-auth');
 const http = require('http');
 const httpProxy = require('http-proxy');
+const HeadlessError = require('node-phantom-simple/headless_error');
 
 const pkg = require(path.join(__dirname, '..', 'package.json'));
 const CrawlKit = require(path.join(__dirname, '..', pkg.main));
@@ -546,6 +547,85 @@ describe('CrawlKit', function main() {
 
             crawler.finder = genericLinkFinder;
             return crawler.crawl().should.eventually.deep.equal({results});
+        });
+    });
+
+    describe('resilience', () => {
+        it('should be able to retry failed attempts when Phantom dies', () => {
+            const crawler = new CrawlKit(url);
+
+            let fails = 3;
+            const flakyRunnable = sinon.spy(() => {
+                if (--fails > 0) {
+                    throw new HeadlessError();
+                }
+                return function resolvingFunction() {
+                    window.callPhantom(null, 'final result');
+                };
+            });
+
+            crawler.addRunner('flaky', {
+                getCompanionFiles: () => [],
+                getRunnable: flakyRunnable,
+            });
+
+            const results = {};
+            results[`${url}/`] = {
+                runners: {
+                    flaky: {
+                        result: 'final result',
+                    },
+                },
+            };
+
+            return crawler.crawl().then((result) => {
+                flakyRunnable.should.have.been.calledThrice;
+                return result;
+            }).should.eventually.deep.equal({results});
+        });
+
+        describe('should only try every so often', () => {
+            let crawler;
+            let flakyRunnable;
+            let results;
+
+            beforeEach(() => {
+                crawler = new CrawlKit(url);
+
+                flakyRunnable = sinon.spy(() => {
+                    throw new HeadlessError();
+                });
+
+                crawler.addRunner('flaky', {
+                    getCompanionFiles: () => [],
+                    getRunnable: flakyRunnable,
+                });
+
+                results = {};
+                results[`${url}/`] = {
+                    error: {
+                        message: undefined,
+                        name: 'HeadlessError',
+                    },
+                    runners: {},
+                };
+            });
+
+            it('every = default', () => {
+                return crawler.crawl().then((result) => {
+                    flakyRunnable.should.have.been.calledThrice;
+                    return result;
+                }).should.eventually.deep.equal({results});
+            });
+
+            it('or how many times defined', () => {
+                crawler.retries = 2;
+
+                return crawler.crawl().then((result) => {
+                    flakyRunnable.should.have.been.calledTwice;
+                    return result;
+                }).should.eventually.deep.equal({results});
+            });
         });
     });
 

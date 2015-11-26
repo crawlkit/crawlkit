@@ -26,6 +26,7 @@ const phantomParamsKey = Symbol();
 const phantomPageSettingsKey = Symbol();
 const followRedirectsKey = Symbol();
 const browserCookiesKey = Symbol();
+const retriesKey = Symbol();
 
 function transformMapToObject(map) {
     const result = {};
@@ -80,6 +81,14 @@ class CrawlKit {
 
     get urlFilter() {
         return this[urlFilterKey];
+    }
+
+    set retries(n) {
+        this[retriesKey] = parseInt(n, 10);
+    }
+
+    get retries() {
+        return Math.max(0, this[retriesKey] || 3);
     }
 
     addRunner(key, runner /* args ... */) {
@@ -194,6 +203,7 @@ class CrawlKit {
             crawlTimer.time((stopCrawlTimer) => {
                 let addUrl;
                 const q = async.queue(function queueWorker(task, workerFinished) {
+                    task.tries++;
                     const workerLogPrefix = `crawlkit:task(${task.id})`;
                     const workerDebug = d(`${workerLogPrefix}:debug`);
                     const workerInfo = d(`${workerLogPrefix}:info`);
@@ -201,7 +211,7 @@ class CrawlKit {
                     const workerTimer = new NanoTimer();
 
                     info(`Worker started - ${q.length()} task(s) left in the queue.`);
-                    workerInfo(`Took ${task.url} from queue.`);
+                    workerInfo(`Took ${task.url} from queue (attempt ${task.tries}).`);
                     workerTimer.time((stopWorkerTimer) => {
                         async.waterfall([
                             function acquireBrowserFromPool(done) {
@@ -390,7 +400,11 @@ class CrawlKit {
                                             workerDebug(`Runner '${runnerId}' evaluated`);
                                         });
                                         scope.page.evaluate.apply(scope.page, params);
-                                    }, done);
+                                    }, done)
+                                    .catch((err) => {
+                                        clearTimeout(timeoutHandler);
+                                        done(err);
+                                    });
                                 };
                                 nextRunner();
                             },
@@ -412,10 +426,16 @@ class CrawlKit {
                                     // take no chances - if there was an error on Phantom side, we should get rid of the instance
                                     workerInfo(`Phantom instance destroyed.`);
                                     pool.destroy(scope.browser);
+                                    scope.browser = null;
                                 } else {
                                     workerDebug(`Phantom released to pool.`);
                                     pool.release(scope.browser);
                                 }
+                            }
+                            if (err instanceof HeadlessError && task.tries < self.retries) {
+                                info(`Retrying ${task.url} - adding back to queue`);
+                                delete task.result.error;
+                                q.unshift(task);
                             }
                             workerFinished(err);
                             stopWorkerTimer();
@@ -453,6 +473,7 @@ class CrawlKit {
                         // don't keep result in memory if we stream
                         seen.set(url, shouldStream ? null : result);
                         q.push({
+                            tries: 0,
                             url,
                             result,
                             id: new Chance().name(),
