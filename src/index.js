@@ -76,7 +76,7 @@ function getRunners(crawlerInstance) {
 * @private
 * @type {String}
 */
-const defaultAbsoluteTo = 'http://'
+const defaultAbsoluteTo = 'http://';
 
 /**
 * The CrawlKit base class. This is where the magic happens.

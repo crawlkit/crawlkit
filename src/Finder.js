@@ -44,7 +44,7 @@ class Finder {
     *                        If you return a relative URL, it will be rewritten absolute to the URL where it was found.
     *                        Invalid URLs (e.g. javascript:;, mailto:, etc.) will be ignored.
     */
-    urlFilter(toBeAddedUrl, discoveredOnUrl) {
+    urlFilter(toBeAddedUrl, /* eslint-disable no-unused-vars*/ discoveredOnUrl) {
         return toBeAddedUrl;
     }
 }
