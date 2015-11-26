@@ -22,7 +22,8 @@
   },
   "files": [
     "index.js",
-    "finders"
+    "finders",
+    "examples/tonic.js"
   ],
   "author": "Joscha Feth <joscha@feth.com>",
   "license": "MIT",
