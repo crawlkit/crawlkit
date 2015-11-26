@@ -53,5 +53,5 @@
   "engines": {
     "node": ">=4.2"
   },
-  "tonicExampleFilename": "examples/advanced.js"
+  "tonicExampleFilename": "examples/tonic.js"
 }
