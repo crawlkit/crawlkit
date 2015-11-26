@@ -87,7 +87,7 @@ describe('CrawlKit', function main() {
                 results[`${url}/#somehash`] = {};
                 results[`${url}/other.html`] = {};
 
-                crawler.setFinder(genericLinkFinder);
+                crawler.setFinder({ getRunnable: () => genericLinkFinder});
                 return crawler.crawl().should.eventually.deep.equal({results});
             });
 
@@ -98,7 +98,7 @@ describe('CrawlKit', function main() {
                 results[`${url}/other.html`] = {};
                 results[`${url}/ajax.html`] = {};
 
-                crawler.setFinder(genericLinkFinder, 2000);
+                crawler.setFinder({ getRunnable: () => genericLinkFinder }, 2000);
                 return crawler.crawl().should.eventually.deep.equal({results});
             });
 
@@ -108,8 +108,10 @@ describe('CrawlKit', function main() {
                 const results = {};
                 results[`${url}/`] = {};
 
-                crawler.setFinder(function incorrectReturnFilter() {
-                    window.callPhantom(null, 'notAnArray');
+                crawler.setFinder({
+                    getRunnable: () => function incorrectReturnFilter() {
+                        window.callPhantom(null, 'notAnArray');
+                    },
                 });
                 return crawler.crawl().should.eventually.deep.equal({results});
             });
@@ -122,12 +124,14 @@ describe('CrawlKit', function main() {
                 results[`${url}/other.html`] = {};
                 results[`${url}/hidden.html`] = {};
 
-                crawler.setFinder(function incorrectReturnFilter() {
-                    window.callPhantom(null, [
-                        'other.html',
-                        null,
-                        'hidden.html',
-                    ]);
+                crawler.setFinder({
+                    getRunnable: () => function incorrectReturnFilter() {
+                        window.callPhantom(null, [
+                            'other.html',
+                            null,
+                            'hidden.html',
+                        ]);
+                    },
                 });
                 return crawler.crawl().should.eventually.deep.equal({results});
             });
@@ -139,8 +143,10 @@ describe('CrawlKit', function main() {
                 results[`${url}/`] = {
                     error: 'Some arbitrary error',
                 };
-                crawler.setFinder(function erroneusFinder() {
-                    window.callPhantom('Some arbitrary error', null);
+                crawler.setFinder({
+                    getRunnable: () => function erroneusFinder() {
+                        window.callPhantom('Some arbitrary error', null);
+                    },
                 });
                 return crawler.crawl().should.eventually.deep.equal({results});
             });
@@ -152,8 +158,10 @@ describe('CrawlKit', function main() {
                 results[`${url}/`] = {
                     error: 'Error: Some thrown error',
                 };
-                crawler.setFinder(function erroneusFinder() {
-                    throw new Error('Some thrown error');
+                crawler.setFinder({
+                    getRunnable: () => function erroneusFinder() {
+                        throw new Error('Some thrown error');
+                    },
                 });
                 return crawler.crawl().should.eventually.deep.equal({results});
             });
@@ -166,7 +174,7 @@ describe('CrawlKit', function main() {
                     error: 'Finder timed out after 1000ms.',
                 };
                 crawler.timeout = 1000;
-                crawler.setFinder(function neverReturningFilter() {});
+                crawler.setFinder({ getRunnable: () => function neverReturningFilter() {} });
                 return crawler.crawl().should.eventually.deep.equal({results});
             });
         });
@@ -179,15 +187,18 @@ describe('CrawlKit', function main() {
                 results[`${url}/`] = {};
                 results[`${url}/other.html`] = {};
 
-                crawler.setFinder(genericLinkFinder);
-
                 const spy = sinon.spy((u) => {
                   if (u.indexOf('somehash') !== -1) {
                       return false;
                   }
                   return u;
                 });
-                crawler.urlFilter = spy;
+
+                crawler.setFinder({
+                    getRunnable: () => genericLinkFinder,
+                    urlFilter: spy,
+                });
+
 
                 return crawler.crawl().then((result) => {
                     spy.callCount.should.equal(2);
@@ -203,14 +214,15 @@ describe('CrawlKit', function main() {
                 results[`${url}/redirected.html`] = {};
                 results[`${url}/other.html`] = {};
 
-                crawler.setFinder(genericLinkFinder);
-
-                crawler.urlFilter = (u) => {
-                  if (u.indexOf('somehash') !== -1) {
-                      return 'redirected.html';
-                  }
-                  return u;
-                };
+                crawler.setFinder({
+                    getRunnable: () => genericLinkFinder,
+                    urlFilter: (u) => {
+                      if (u.indexOf('somehash') !== -1) {
+                          return 'redirected.html';
+                      }
+                      return u;
+                  },
+                });
 
                 return crawler.crawl().should.eventually.deep.equal({results});
             });
@@ -221,9 +233,10 @@ describe('CrawlKit', function main() {
                 const results = {};
                 results[`${url}/`] = {};
 
-                crawler.setFinder(genericLinkFinder);
-
-                crawler.urlFilter = () => {};
+                crawler.setFinder({
+                    getRunnable: () => genericLinkFinder,
+                    urlFilter: () => {},
+                });
 
                 return crawler.crawl().should.eventually.deep.equal({results});
             });
@@ -246,7 +259,7 @@ describe('CrawlKit', function main() {
         results[`${url}/404.html`] = {
             error: `Failed to open ${url}/404.html`,
         };
-        crawler.setFinder(genericLinkFinder);
+        crawler.setFinder({ getRunnable: () => genericLinkFinder});
         return crawler.crawl().should.eventually.deep.equal({results});
     });
 
@@ -534,7 +547,7 @@ describe('CrawlKit', function main() {
             results[`${proxyUrl}/#somehash`] = {};
             results[`${proxyUrl}/other.html`] = {};
 
-            crawler.setFinder(genericLinkFinder);
+            crawler.setFinder({ getRunnable: () => genericLinkFinder });
             return crawler.crawl().should.eventually.deep.equal({results});
         });
     });
@@ -622,7 +635,7 @@ describe('CrawlKit', function main() {
         it('should be possible to read from the stream', (done) => {
             const crawler = new CrawlKit(url);
 
-            crawler.setFinder(genericLinkFinder);
+            crawler.setFinder({ getRunnable: () => genericLinkFinder });
 
             crawler.addRunner('agent', {
                 getCompanionFiles: () => [],
