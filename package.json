@@ -17,7 +17,7 @@
     "docs": "jsdoc -c conf.json",
     "test": "mocha",
     "lint": "eslint .",
-    "tdd": "mocha --watch --reporter min",
+    "tdd": "mocha --watch --watch-extensions js,html --reporter min",
     "test.server": "http-server test/fixtures/website/"
   },
   "files": [
