@@ -270,6 +270,7 @@ class CrawlKit {
     * Getter/setter for the map of settings to pass to an opened page.
     * You can use this for example for Basic Authentication.
     * For a list of options, please refer to the [PhantomJS documentation]{@link http://phantomjs.org/api/webpage/property/settings.html}.
+    * Nested settings can just be provided in dot notation as the key, e.g. 'settings.userAgent'.
     *
     * @type {!Object.<String,*>}
     */
@@ -420,14 +421,24 @@ class CrawlKit {
                                 });
                             },
                             function setPageSettings(scope, done) {
-                                Promise.all(Object.keys(self.phantomPageSettings).map((key) => {
+                                const settingsToSet = Object.assign({}, self.phantomPageSettings);
+                                if (!self.followRedirects) {
+                                    // TODO: fix - enabling the next line currently stalls PhantomJS
+                                    // but it is needed to prevent redirects when redirects are not
+                                    // supposed to be followed
+
+                                    // settingsToSet.navigationLocked = true;
+                                }
+
+                                Promise.all(Object.keys(settingsToSet).map((key) => {
                                     return new Promise((success, reject) => {
-                                        workerDebug(`Setting settings.${key}`);
-                                        scope.page.set(`settings.${key}`, self.phantomPageSettings[key], (settingErr) => {
+                                        workerDebug(`Attempting to set setting ${key} => ${JSON.stringify(settingsToSet[key])}`);
+                                        scope.page.set(key, settingsToSet[key], (settingErr) => {
                                             if (settingErr) {
-                                                workerError(`Setting settings.${key} failed`);
+                                                workerError(`Setting ${key} failed`);
                                                 return reject(settingErr);
                                             }
+                                            workerDebug(`Successfully set setting ${key}`);
                                             success();
                                         });
                                     });
@@ -438,17 +449,23 @@ class CrawlKit {
                                 });
                             },
                             function openPage(scope, done) {
-                                if (self.followRedirects) {
-                                    scope.page.onNavigationRequested = (redirectedToUrl, type, willNavigate, mainFrame) => {
-                                        workerDebug(`Page for ${task.url} asks for redirect`);
+                                scope.page.onNavigationRequested = (redirectedToUrl, type, willNavigate, mainFrame) => {
+                                    if (urijs(task.url).equals(redirectedToUrl)) {
+                                        // this is the initial open of the task URL, ignore
+                                        return;
+                                    }
 
-                                        if (mainFrame && type === 'Other' && !urijs(task.url).equals(redirectedToUrl)) {
+                                    workerDebug(`Page for ${task.url} asks for redirect. Will navigatate? ${willNavigate ? 'Yes' : 'No'}`);
+
+                                    if (self.followRedirects) {
+                                        if (mainFrame && type === 'Other') {
                                             addUrl(redirectedToUrl);
                                             const err = `page for ${task.url} redirected to ${redirectedToUrl}`;
                                             done(err, scope);
                                         }
-                                    };
-                                }
+                                    }
+                                };
+
                                 scope.page.open(task.url, (err, status) => {
                                     if (err) {
                                         return done(err, scope);
