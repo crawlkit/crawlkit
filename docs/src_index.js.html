@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Source: index.js</title>
+    <title>JSDoc: Source: src/index.js</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,7 +17,7 @@
 
 <div id="main">
 
-    <h1 class="page-title">Source: index.js</h1>
+    <h1 class="page-title">Source: src/index.js</h1>
 
     
 
@@ -99,12 +99,38 @@ function getRunners(crawlerInstance) {
 }
 
 /**
+* Checks whether a given stack trace belongs to an error from a Phantom evaluation.
+* This can be used to distinguish between stack traces of errors on a page opened
+* with PhantomJS and evaluated code within.
+*
+* @private
+* @param {Array.&lt;Object>} trace The Phantom trace (for example from [page.onError]{@link http://phantomjs.org/api/webpage/handler/on-error.html})
+* @return {boolean} Whether the trace belongs to a PhantomJS-based execution or not.
+*/
+function isPhantomError(trace) {
+    if (!(trace instanceof Array)) {
+        return false;
+    }
+    for (let i = 0; i &lt; trace.length; i++) {
+        const obj = trace[i];
+        try {
+            if (urijs(obj.file).protocol() === 'phantomjs') {
+                return true;
+            }
+        } catch (e) {
+            continue;
+        }
+    }
+    return false;
+}
+
+/**
 * The protocol a URL without a protocol is written to.
 *
 * @private
 * @type {String}
 */
-const defaultAbsoluteTo = 'http://'
+const defaultAbsoluteTo = 'http://';
 
 /**
 * The CrawlKit base class. This is where the magic happens.
@@ -272,6 +298,7 @@ class CrawlKit {
     * Getter/setter for the map of settings to pass to an opened page.
     * You can use this for example for Basic Authentication.
     * For a list of options, please refer to the [PhantomJS documentation]{@link http://phantomjs.org/api/webpage/property/settings.html}.
+    * Nested settings can just be provided in dot notation as the key, e.g. 'settings.userAgent'.
     *
     * @type {!Object.&lt;String,*>}
     */
@@ -422,14 +449,24 @@ class CrawlKit {
                                 });
                             },
                             function setPageSettings(scope, done) {
-                                Promise.all(Object.keys(self.phantomPageSettings).map((key) => {
+                                const settingsToSet = Object.assign({}, self.phantomPageSettings);
+                                if (!self.followRedirects) {
+                                    // TODO: fix - enabling the next line currently stalls PhantomJS
+                                    // but it is needed to prevent redirects when redirects are not
+                                    // supposed to be followed
+
+                                    // settingsToSet.navigationLocked = true;
+                                }
+
+                                Promise.all(Object.keys(settingsToSet).map((key) => {
                                     return new Promise((success, reject) => {
-                                        workerDebug(`Setting settings.${key}`);
-                                        scope.page.set(`settings.${key}`, self.phantomPageSettings[key], (settingErr) => {
+                                        workerDebug(`Attempting to set setting ${key} => ${JSON.stringify(settingsToSet[key])}`);
+                                        scope.page.set(key, settingsToSet[key], (settingErr) => {
                                             if (settingErr) {
-                                                workerError(`Setting settings.${key} failed`);
+                                                workerError(`Setting ${key} failed`);
                                                 return reject(settingErr);
                                             }
+                                            workerDebug(`Successfully set setting ${key}`);
                                             success();
                                         });
                                     });
@@ -440,17 +477,23 @@ class CrawlKit {
                                 });
                             },
                             function openPage(scope, done) {
-                                if (self.followRedirects) {
-                                    scope.page.onNavigationRequested = (redirectedToUrl, type, willNavigate, mainFrame) => {
-                                        workerDebug(`Page for ${task.url} asks for redirect`);
+                                scope.page.onNavigationRequested = (redirectedToUrl, type, willNavigate, mainFrame) => {
+                                    if (urijs(task.url).equals(redirectedToUrl)) {
+                                        // this is the initial open of the task URL, ignore
+                                        return;
+                                    }
 
-                                        if (mainFrame &amp;&amp; type === 'Other' &amp;&amp; !urijs(task.url).equals(redirectedToUrl)) {
+                                    workerDebug(`Page for ${task.url} asks for redirect. Will navigatate? ${willNavigate ? 'Yes' : 'No'}`);
+
+                                    if (self.followRedirects) {
+                                        if (mainFrame &amp;&amp; type === 'Other') {
                                             addUrl(redirectedToUrl);
                                             const err = `page for ${task.url} redirected to ${redirectedToUrl}`;
                                             done(err, scope);
                                         }
-                                    };
-                                }
+                                    }
+                                };
+
                                 scope.page.open(task.url, (err, status) => {
                                     if (err) {
                                         return done(err, scope);
@@ -505,7 +548,13 @@ class CrawlKit {
                                     done();
                                 }
                                 scope.page.onCallback = phantomCallback;
-                                scope.page.onError = phantomCallback;
+                                scope.page.onError = (err, trace) => {
+                                    if (isPhantomError(trace)) {
+                                        phantomCallback(err);
+                                    } else {
+                                        workerDebug(`Page: "${err}" in ${JSON.stringify(trace)}`);
+                                    }
+                                };
                                 timeoutHandler = setTimeout(() => {
                                     phantomCallback(`Finder timed out after ${self.timeout}ms.`, null);
                                 }, self.timeout);
@@ -560,6 +609,7 @@ class CrawlKit {
                                         const runnerLogPrefix = `${workerLogPrefix}:runner(${runnerId})`;
                                         const runnerConsole = d(`${runnerLogPrefix}:console:debug`);
                                         const runnerInfo = d(`${runnerLogPrefix}:info`);
+                                        const runnerDebug = d(`${runnerLogPrefix}:debug`);
                                         const runnerError = d(`${runnerLogPrefix}:error`);
 
                                         const phantomCallback = (err, result) => {
@@ -575,7 +625,13 @@ class CrawlKit {
                                             nextRunner();
                                         };
                                         scope.page.onCallback = phantomCallback;
-                                        scope.page.onError = phantomCallback;
+                                        scope.page.onError = (err, trace) => {
+                                            if (isPhantomError(trace)) {
+                                                phantomCallback(err);
+                                            } else {
+                                                runnerDebug(`Page: "${err}" in ${JSON.stringify(trace)}`);
+                                            }
+                                        };
                                         scope.page.onConsoleMessage = runnerConsole;
                                         runnerInfo(`Started.`);
                                         timeoutHandler = setTimeout(() => {
@@ -700,13 +756,13 @@ module.exports = CrawlKit;
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="CrawlKit.html">CrawlKit</a></li></ul><h3>Interfaces</h3><ul><li><a href="Finder.html">Finder</a></li><li><a href="Runner.html">Runner</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="finders.module_genericAnchors.html">genericAnchors</a></li></ul><h3>Classes</h3><ul><li><a href="CrawlKit.html">CrawlKit</a></li></ul><h3>Interfaces</h3><ul><li><a href="Finder.html">Finder</a></li><li><a href="Runner.html">Runner</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a> on Fri Nov 27 2015 01:01:45 GMT+1100 (AEDT)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a> on Fri Nov 27 2015 14:42:58 GMT+1100 (AEDT)
 </footer>
 
 <script> prettyPrint(); </script>
