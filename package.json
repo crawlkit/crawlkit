@@ -21,7 +21,7 @@
     "test.server": "http-server test/fixtures/website/"
   },
   "files": [
-    "index.js",
+    "src",
     "finders",
     "examples/tonic.js"
   ],
