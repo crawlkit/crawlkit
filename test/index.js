@@ -437,11 +437,12 @@ describe('CrawlKit', function main() {
             });
 
             it('should work on a broken website', () => {
-                const crawler = new CrawlKit(`${url}/pricing.html`);
+                const urlToBrokenWebsite = `${url}/pageWithError.immediate.html`;
+                const crawler = new CrawlKit(urlToBrokenWebsite);
                 crawler.addRunner('companion', companionRunner);
 
                 const results = {};
-                results[`${url}/pricing.html`] = {
+                results[urlToBrokenWebsite] = {
                     runners: {
                         companion: {
                             result: 'success',
