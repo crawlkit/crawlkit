@@ -26,6 +26,7 @@ const phantomPageSettingsKey = Symbol();
 const followRedirectsKey = Symbol();
 const browserCookiesKey = Symbol();
 const retriesKey = Symbol();
+const redirectFilterKey = Symbol();
 
 /**
 * Transforms a {Map} to an {Object} hash.
@@ -94,6 +95,36 @@ function isPhantomError(trace) {
         }
     }
     return false;
+}
+
+/**
+* This applies a URL filter function to a given URL,
+* based on a source URL and calls a given callback
+* if the filter does not return false.
+*
+* @private
+* @param {Function} [filterFn] The filter function to call on the URL. If not given, the URL will be assumed accepted.
+* @param {String} url The URL to filter. If this URL is not valid, it will be silently discarded (callback will not be called)
+* @param {String} fromUrl A URL where the URL to be filter originated from. In case the filter returns a relative URL, it will be rewritten relative to the this URL.
+* @param {Function} cb A function that is called with the rewritten URL
+* @param {(boolean|String)} returns the added URL if it was added. False if the URL was discarded. Throws an error if there is a problem with the URL.
+*/
+function applyUrlFilterFn(filterFn, url, fromUrl, cb) {
+    const uri = urijs(url);
+    const fromUri = urijs(fromUrl);
+    fromUri.normalize();
+    let absoluteUrl = uri.absoluteTo(fromUri).toString();
+    if (typeof filterFn === 'function') {
+        const rewrittenUrl = filterFn(absoluteUrl, fromUri.toString());
+        if (rewrittenUrl === false) {
+            return false;
+        }
+        if (rewrittenUrl !== absoluteUrl) {
+            absoluteUrl = urijs(rewrittenUrl).absoluteTo(fromUri).toString();
+        }
+    }
+    cb(absoluteUrl);
+    return absoluteUrl;
 }
 
 /**
@@ -324,6 +355,29 @@ class CrawlKit {
     }
 
     /**
+    * Getter/setter for the filter that is applied to redirected URLs.
+    * With this filter you can prevent the redirect or rewrite it.
+    * The filter callback gets two arguments. The first one is the target URL
+    * the scond one the source URL.
+    * Return false for preventing the redirect. Return a String (URL) to follow the redirect.
+    *
+    * @type {Function}
+    */
+    set redirectFilter(filter) {
+        if (typeof filter !== 'function') {
+            throw new Error('Filter must be valid function');
+        }
+        this[redirectFilterKey] = filter;
+    }
+
+    /**
+    * @ignore
+    */
+    get redirectFilter() {
+        return this[redirectFilterKey] || ((targetUrl) => targetUrl);
+    }
+
+    /**
     * This method starts the crawling/scraping process.
     *
     * @param {boolean} [shouldStream=false] Whether to stream the results or use a Promise
@@ -459,9 +513,16 @@ class CrawlKit {
 
                                     if (self.followRedirects) {
                                         if (mainFrame && type === 'Other') {
-                                            addUrl(redirectedToUrl);
-                                            const err = `page for ${task.url} redirected to ${redirectedToUrl}`;
-                                            done(err, scope);
+                                            try {
+                                            const state = applyUrlFilterFn(self.redirectFilter, redirectedToUrl, task.url, addUrl);
+                                                if (state === false) {
+                                                    done(`URL ${redirectedToUrl} was not followed`, scope);
+                                                } else {
+                                                    done(`page for ${task.url} redirected to ${redirectedToUrl}`, scope);
+                                                }
+                                            } catch (e) {
+                                                done(e, scope);
+                                            }
                                         }
                                     }
                                 };
@@ -495,21 +556,12 @@ class CrawlKit {
                                         workerInfo(`Finder discovered ${urls.length} URLs.`);
                                         urls.forEach((url) => {
                                             try {
-                                                const uri = urijs(url);
-                                                const fromUri = urijs(task.url);
-                                                let absoluteUrl = uri.absoluteTo(fromUri).toString();
-                                                if (typeof getUrlFilter(self) === 'function') {
-                                                    const rewrittenUrl = getUrlFilter(self)(absoluteUrl, task.url);
-                                                    if (rewrittenUrl === false) {
-                                                        workerDebug(`Discovered URL ${url} ignored due to URL filter.`);
-                                                        return;
-                                                    }
-                                                    if (rewrittenUrl !== absoluteUrl) {
-                                                        workerDebug(`${url} was rewritten to ${rewrittenUrl}.`);
-                                                        absoluteUrl = urijs(rewrittenUrl).absoluteTo(fromUri).toString();
-                                                    }
+                                            const state = applyUrlFilterFn(getUrlFilter(self), url, task.url, addUrl);
+                                                if (state === false) {
+                                                    workerDebug(`URL ${url} ignored due to URL filter.`);
+                                                } else {
+                                                    workerDebug(`${url} was rewritten to ${state}.`);
                                                 }
-                                                addUrl(absoluteUrl);
                                             } catch (e) {
                                                 workerDebug(e);
                                             }
