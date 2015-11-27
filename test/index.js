@@ -544,6 +544,23 @@ describe('CrawlKit', function main() {
             results[targetUrl] = {};
             return crawler.crawl().should.eventually.deep.equal({results});
         });
+
+        it('should be checked against the redirectFilter if available', () => {
+            const externalRedirectUrl = `${url}/redirect.external.html`;
+            const crawler = new CrawlKit(externalRedirectUrl);
+            crawler.redirectFilter = sinon.spy(() => false);
+            crawler.followRedirects = true;
+            const results = {};
+            results[externalRedirectUrl] = {
+                error: 'URL http://www.google.com/ was not followed',
+            };
+
+            return crawler.crawl().then((data) => {
+                crawler.redirectFilter.should.have.been.calledOnce;
+                crawler.redirectFilter.should.have.been.calledWith('http://www.google.com/', externalRedirectUrl);
+                return data;
+            }).should.eventually.deep.equal({results});
+        });
     });
 
     describe('cookies', () => {
