@@ -80,7 +80,20 @@ function getRunners(crawlerInstance) {
 * @return {boolean} Whether the trace belongs to a PhantomJS-based execution or not.
 */
 function isPhantomError(trace) {
-    return trace && trace[0] && trace[0].file && urijs(trace[0].file).protocol() === 'phantomjs';
+    if (!(trace instanceof Array)) {
+        return false;
+    }
+    for (let i = 0; i < trace.length; i++) {
+        const obj = trace[i];
+        try {
+            if (urijs(obj.file).protocol() === 'phantomjs') {
+                return true;
+            }
+        } catch (e) {
+            continue;
+        }
+    }
+    return false;
 }
 
 /**
