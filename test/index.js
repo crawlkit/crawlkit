@@ -379,9 +379,10 @@ describe('CrawlKit', function main() {
         });
 
         describe('companion files', () => {
-            it('synchronously', () => {
-                const crawler = new CrawlKit(url);
-                crawler.addRunner('companion', {
+            let companionRunner;
+
+            beforeEach(() => {
+                companionRunner = {
                     getCompanionFiles: () => [
                         path.join(__dirname, 'fixtures/companionA.js'),
                         path.join(__dirname, 'fixtures/companionB.js'),
@@ -391,7 +392,13 @@ describe('CrawlKit', function main() {
                             window.companionB();
                         };
                     },
-                });
+                };
+            });
+
+
+            it('synchronously', () => {
+                const crawler = new CrawlKit(url);
+                crawler.addRunner('companion', companionRunner);
 
                 const results = {};
                 results[`${url}/`] = {
@@ -420,6 +427,21 @@ describe('CrawlKit', function main() {
 
                 const results = {};
                 results[`${url}/`] = {
+                    runners: {
+                        companion: {
+                            result: 'success',
+                        },
+                    },
+                };
+                return crawler.crawl().should.eventually.deep.equal({results});
+            });
+
+            it('should work on a broken website', () => {
+                const crawler = new CrawlKit(`${url}/pricing.html`);
+                crawler.addRunner('companion', companionRunner);
+
+                const results = {};
+                results[`${url}/pricing.html`] = {
                     runners: {
                         companion: {
                             result: 'success',
