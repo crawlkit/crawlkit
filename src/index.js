@@ -438,17 +438,23 @@ class CrawlKit {
                                 });
                             },
                             function openPage(scope, done) {
-                                if (self.followRedirects) {
-                                    scope.page.onNavigationRequested = (redirectedToUrl, type, willNavigate, mainFrame) => {
-                                        workerDebug(`Page for ${task.url} asks for redirect`);
+                                scope.page.onNavigationRequested = (redirectedToUrl, type, willNavigate, mainFrame) => {
+                                    if (urijs(task.url).equals(redirectedToUrl)) {
+                                        // this is the initial open of the task URL, ignore
+                                        return;
+                                    }
 
-                                        if (mainFrame && type === 'Other' && !urijs(task.url).equals(redirectedToUrl)) {
+                                    workerDebug(`Page for ${task.url} asks for redirect. Will navigatate? ${willNavigate ? 'Yes' : 'No'}`);
+
+                                    if (self.followRedirects) {
+                                        if (mainFrame && type === 'Other') {
                                             addUrl(redirectedToUrl);
                                             const err = `page for ${task.url} redirected to ${redirectedToUrl}`;
                                             done(err, scope);
                                         }
-                                    };
-                                }
+                                    }
+                                };
+
                                 scope.page.open(task.url, (err, status) => {
                                     if (err) {
                                         return done(err, scope);
