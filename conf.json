@@ -6,7 +6,6 @@
     "opts": {
         "destination": "./docs/",
         "recurse": true,
-        "package": "package.json",
         "verbose": true
     },
     "templates": {
