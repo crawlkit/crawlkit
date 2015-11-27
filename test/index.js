@@ -576,7 +576,7 @@ describe('CrawlKit', function main() {
         it('should be possible to set a page setting', () => {
             const crawler = new CrawlKit(url);
             crawler.phantomPageSettings = {
-                userAgent: 'Mickey Mouse',
+                'settings.userAgent': 'Mickey Mouse',
             };
             crawler.addRunner('agent', {
                 getCompanionFiles: () => [],
@@ -602,8 +602,8 @@ describe('CrawlKit', function main() {
         it('should be possible to set basic auth headers', () => {
             const crawler = new CrawlKit(proxyUrl);
             crawler.phantomPageSettings = {
-                userName: 'foo',
-                password: 'bar',
+                'settings.userName': 'foo',
+                'settings.password': 'bar',
             };
 
             const results = {};

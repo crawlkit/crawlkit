@@ -270,6 +270,7 @@ class CrawlKit {
     * Getter/setter for the map of settings to pass to an opened page.
     * You can use this for example for Basic Authentication.
     * For a list of options, please refer to the [PhantomJS documentation]{@link http://phantomjs.org/api/webpage/property/settings.html}.
+    * Nested settings can just be provided in dot notation as the key, e.g. 'settings.userAgent'.
     *
     * @type {!Object.<String,*>}
     */
@@ -420,14 +421,17 @@ class CrawlKit {
                                 });
                             },
                             function setPageSettings(scope, done) {
-                                Promise.all(Object.keys(self.phantomPageSettings).map((key) => {
+                                const settingsToSet = Object.assign({}, self.phantomPageSettings);
+
+                                Promise.all(Object.keys(settingsToSet).map((key) => {
                                     return new Promise((success, reject) => {
-                                        workerDebug(`Setting settings.${key}`);
-                                        scope.page.set(`settings.${key}`, self.phantomPageSettings[key], (settingErr) => {
+                                        workerDebug(`Attempting to set setting ${key} => ${JSON.stringify(settingsToSet[key])}`);
+                                        scope.page.set(key, settingsToSet[key], (settingErr) => {
                                             if (settingErr) {
-                                                workerError(`Setting settings.${key} failed`);
+                                                workerError(`Setting ${key} failed`);
                                                 return reject(settingErr);
                                             }
+                                            workerDebug(`Successfully set setting ${key}`);
                                             success();
                                         });
                                     });
