@@ -143,7 +143,7 @@ describe('CrawlKit', function main() {
                 return crawler.crawl().should.eventually.deep.equal({results});
             });
 
-            it('that doesn\'t return URLs', () => {
+            it(`that doesn't return URLs`, () => {
                 const crawler = new CrawlKit(url);
 
                 const results = {};
