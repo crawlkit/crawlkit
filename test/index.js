@@ -42,6 +42,16 @@ class DelayedRunner {
     }
 }
 
+class GenericLinkFinder {
+    constructor(urlFilter) {
+        this.urlFilter = urlFilter;
+    }
+
+    getRunnable() {
+        return genericLinkFinder;
+    }
+}
+
 describe('CrawlKit', function main() {
     this.timeout(5 * 60 * 1000); // crawling can take a while
     let server;
@@ -104,7 +114,7 @@ describe('CrawlKit', function main() {
                 results[`${url}/#somehash`] = {};
                 results[`${url}/other.html`] = {};
 
-                crawler.setFinder({ getRunnable: () => genericLinkFinder});
+                crawler.setFinder(new GenericLinkFinder());
                 return crawler.crawl().should.eventually.deep.equal({results});
             });
 
@@ -115,7 +125,7 @@ describe('CrawlKit', function main() {
                 results[`${url}/other.html`] = {};
                 results[`${url}/ajax.html`] = {};
 
-                crawler.setFinder({ getRunnable: () => genericLinkFinder }, 2000);
+                crawler.setFinder(new GenericLinkFinder(), 2000);
                 return crawler.crawl().should.eventually.deep.equal({results});
             });
 
@@ -198,7 +208,7 @@ describe('CrawlKit', function main() {
             it('on a page with errors', () => {
                 const crawler = new CrawlKit(`${url}/pageWithError.html`);
 
-                crawler.setFinder({ getRunnable: () => genericLinkFinder }, 2000);
+                crawler.setFinder(new GenericLinkFinder(), 2000);
 
                 const results = {};
                 results[`${url}/pageWithError.html`] = {};
@@ -288,7 +298,7 @@ describe('CrawlKit', function main() {
         results[`${url}/404.html`] = {
             error: `Failed to open ${url}/404.html`,
         };
-        crawler.setFinder({ getRunnable: () => genericLinkFinder});
+        crawler.setFinder(new GenericLinkFinder());
         return crawler.crawl().should.eventually.deep.equal({results});
     });
 
@@ -601,7 +611,7 @@ describe('CrawlKit', function main() {
             results[`${proxyUrl}/#somehash`] = {};
             results[`${proxyUrl}/other.html`] = {};
 
-            crawler.setFinder({ getRunnable: () => genericLinkFinder });
+            crawler.setFinder(new GenericLinkFinder());
             return crawler.crawl().should.eventually.deep.equal({results});
         });
     });
@@ -689,7 +699,7 @@ describe('CrawlKit', function main() {
         it('should be possible to read from the stream', (done) => {
             const crawler = new CrawlKit(url);
 
-            crawler.setFinder({ getRunnable: () => genericLinkFinder });
+            crawler.setFinder(new GenericLinkFinder());
 
             crawler.addRunner('agent', {
                 getCompanionFiles: () => [],
