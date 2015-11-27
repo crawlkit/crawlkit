@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+  <script>
+    function pageCode() {
+        window.setTimeout(function() {
+            throw new Error('Page error');
+        }, 1000);
+    }
+  </script>
+  <body onload="pageCode()">
+      <a href="deadend.html">here</a>
+      <script src="js/error.js"></script>
+  </body>
+</html>

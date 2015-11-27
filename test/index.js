@@ -25,6 +25,23 @@ const basic = auth.basic({
         cb(username === 'foo' && password === 'bar');
 });
 
+class DelayedRunner {
+    getCompanionFiles() {
+        return [];
+    }
+
+    getRunnable() {
+        return function delayedRunner(delay, fail) {
+            window.setTimeout(function delayedCallback() {
+                if (fail) {
+                    throw new Error('runner failure');
+                }
+                window.callPhantom(null, 'success');
+            }, delay);
+        };
+    }
+}
+
 describe('CrawlKit', function main() {
     this.timeout(5 * 60 * 1000); // crawling can take a while
     let server;
@@ -177,6 +194,18 @@ describe('CrawlKit', function main() {
                 crawler.setFinder({ getRunnable: () => function neverReturningFilter() {} });
                 return crawler.crawl().should.eventually.deep.equal({results});
             });
+
+            it('on a page with errors', () => {
+                const crawler = new CrawlKit(`${url}/pageWithError.html`);
+
+                crawler.setFinder({ getRunnable: () => genericLinkFinder }, 2000);
+
+                const results = {};
+                results[`${url}/pageWithError.html`] = {};
+                results[`${url}/deadend.html`] = {};
+
+                return crawler.crawl().should.eventually.deep.equal({results});
+            });
         });
 
         describe('urlFilter', () => {
@@ -292,16 +321,7 @@ describe('CrawlKit', function main() {
 
         it('should be able to run async', () => {
             const crawler = new CrawlKit(url);
-            crawler.addRunner('async', {
-                getCompanionFiles: () => [],
-                getRunnable: () => {
-                    return function delayedRunner() {
-                        window.setTimeout(function delayedCallback() {
-                            window.callPhantom(null, 'success');
-                        }, 2000);
-                    };
-                },
-            });
+            crawler.addRunner('async', new DelayedRunner(), 2000);
 
             const results = {};
             results[`${url}/`] = {
@@ -312,6 +332,40 @@ describe('CrawlKit', function main() {
                 },
             };
             return crawler.crawl().should.eventually.deep.equal({results});
+        });
+
+        describe('errors', () => {
+            it('should not die on page errors', () => {
+                const crawler = new CrawlKit(`${url}/pageWithError.html`);
+
+                crawler.addRunner('success', new DelayedRunner(), 2000);
+
+                const results = {};
+                results[`${url}/pageWithError.html`] = {
+                    runners: {
+                        success: {
+                            result: 'success',
+                        },
+                    },
+                };
+                return crawler.crawl().should.eventually.deep.equal({results});
+            });
+
+            it('should die on runner errors', () => {
+                const crawler = new CrawlKit(`${url}/pageWithError.html`);
+
+                crawler.addRunner('failure', new DelayedRunner(), 2000, true);
+
+                const results = {};
+                results[`${url}/pageWithError.html`] = {
+                    runners: {
+                        failure: {
+                            error: 'Error: runner failure',
+                        },
+                    },
+                };
+                return crawler.crawl().should.eventually.deep.equal({results});
+            });
         });
 
         describe('companion files', () => {

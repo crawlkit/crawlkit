@@ -71,6 +71,19 @@ function getRunners(crawlerInstance) {
 }
 
 /**
+* Checks whether a given stack trace belongs to an error from a Phantom evaluation.
+* This can be used to distinguish between stack traces of errors on a page opened
+* with PhantomJS and evaluated code within.
+*
+* @private
+* @param {Array.<Object>} trace The Phantom trace (for example from [page.onError]{@link http://phantomjs.org/api/webpage/handler/on-error.html})
+* @return {boolean} Whether the trace belongs to a PhantomJS-based execution or not.
+*/
+function isPhantomError(trace) {
+    return trace && trace[0] && trace[0].file && urijs(trace[0].file).protocol() === 'phantomjs';
+}
+
+/**
 * The protocol a URL without a protocol is written to.
 *
 * @private
@@ -477,7 +490,13 @@ class CrawlKit {
                                     done();
                                 }
                                 scope.page.onCallback = phantomCallback;
-                                scope.page.onError = phantomCallback;
+                                scope.page.onError = (err, trace) => {
+                                    if (isPhantomError(trace)) {
+                                        phantomCallback(err);
+                                    } else {
+                                        workerDebug(`Page: "${err}" in ${JSON.stringify(trace)}`);
+                                    }
+                                };
                                 timeoutHandler = setTimeout(() => {
                                     phantomCallback(`Finder timed out after ${self.timeout}ms.`, null);
                                 }, self.timeout);
@@ -532,6 +551,7 @@ class CrawlKit {
                                         const runnerLogPrefix = `${workerLogPrefix}:runner(${runnerId})`;
                                         const runnerConsole = d(`${runnerLogPrefix}:console:debug`);
                                         const runnerInfo = d(`${runnerLogPrefix}:info`);
+                                        const runnerDebug = d(`${runnerLogPrefix}:debug`);
                                         const runnerError = d(`${runnerLogPrefix}:error`);
 
                                         const phantomCallback = (err, result) => {
@@ -547,7 +567,13 @@ class CrawlKit {
                                             nextRunner();
                                         };
                                         scope.page.onCallback = phantomCallback;
-                                        scope.page.onError = phantomCallback;
+                                        scope.page.onError = (err, trace) => {
+                                            if (isPhantomError(trace)) {
+                                                phantomCallback(err);
+                                            } else {
+                                                runnerDebug(`Page: "${err}" in ${JSON.stringify(trace)}`);
+                                            }
+                                        };
                                         scope.page.onConsoleMessage = runnerConsole;
                                         runnerInfo(`Started.`);
                                         timeoutHandler = setTimeout(() => {

@@ -13,6 +13,7 @@ A crawler based on PhantomJS. Allows discovery of dynamic content and supports c
 * Can follow redirects (and because it's based on PhantomJS, JavaScript redirects will be followed as well as `<meta>` redirects.)
 * Streaming
 * Resilient to PhantomJS crashes
+* Ignores page errors
 
 ## Install
 ```console
