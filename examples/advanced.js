@@ -1,4 +1,4 @@
-'use strict';
+'use strict'; // eslint-disable-line
 const CrawlKit = require('crawlkit');
 const genericAnchors = require('../finders/genericAnchors');
 const urijs = require('urijs');
@@ -11,7 +11,7 @@ class SameDomainLinkFinder {
         return genericAnchors;
     }
 
-    urlFilter() {
+    urlFilter(url) {
         if (urijs(url).domain() !== urijs(baseURL).domain()) {
             // not same domain - discard URL
             return false;
@@ -41,5 +41,6 @@ crawler.setFinder(new SameDomainLinkFinder());
 crawler.addRunner('title', new TitleRunner(), 1000);
 
 crawler.crawl().then((results) => {
+    /* eslint-disable no-console */
     console.log(JSON.stringify(results, true, 2));
 });
