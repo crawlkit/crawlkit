@@ -1,4 +1,4 @@
-'use strict';
+'use strict'; // eslint-disable-line
 const CrawlKit = require('crawlkit');
 
 const baseURL = 'https://www.google.com';
@@ -10,5 +10,6 @@ crawler.addRunner('title', {
 });
 
 crawler.crawl().then((results) => {
+    /* eslint-disable no-console */
     console.log(JSON.stringify(results, true, 2));
 });
