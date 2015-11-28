@@ -44,4 +44,5 @@ CrawlKit uses [debug](https://github.com/visionmedia/debug) for debugging purpos
 ## Available runners
 * [HTML Codesniffer runner](https://github.com/crawlkit/runner-htmlcs): Audit a website with the [HTML Codesniffer](https://github.com/squizlabs/HTML_CodeSniffer) to find accessibility defects.
 * [Google Chrome Accessibility Developer Tools runner](https://github.com/crawlkit/runner-accessibility-developer-tools): Audit a website with the [Google Chrome Accessibility Developer Tools](https://github.com/GoogleChrome/accessibility-developer-tools) to find accessibility defects.
+* [aXe runner](https://github.com/crawlkit/runner-axe): Audit a website with [aXe](https://github.com/dequelabs/axe-core).
 * Yours? Create a PR to add it to this list here!
