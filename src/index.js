@@ -521,6 +521,7 @@ class CrawlKit {
                                                     done(`page for ${task.url} redirected to ${redirectedToUrl}`, scope);
                                                 }
                                             } catch (e) {
+                                                workerDebug(`Error on redirect filter (${redirectedToUrl}, ${task.url})`);
                                                 done(e, scope);
                                             }
                                         }
@@ -559,10 +560,13 @@ class CrawlKit {
                                             const state = applyUrlFilterFn(getUrlFilter(self), url, task.url, addUrl);
                                                 if (state === false) {
                                                     workerDebug(`URL ${url} ignored due to URL filter.`);
-                                                } else {
+                                                } else if (url !== state) {
                                                     workerDebug(`${url} was rewritten to ${state}.`);
+                                                } else {
+                                                    workerDebug(`${url} was added.`);
                                                 }
                                             } catch (e) {
+                                                workerDebug(`Error on URL filter (${url}, ${task.url})`);
                                                 workerDebug(e);
                                             }
                                         });
