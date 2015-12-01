@@ -105,6 +105,15 @@ describe('CrawlKit', function main() {
             return crawler.crawl().should.eventually.deep.equal({results});
         });
 
+        it('should error if no URL was given', () => {
+            const crawler = new CrawlKit();
+            return crawler.crawl().should.eventually.be.rejected;
+        });
+        it('should error if erroneous URL was given', () => {
+            const crawler = new CrawlKit('mailto:bla@bla');
+            return crawler.crawl().should.eventually.be.rejected;
+        });
+
         describe('with a finder', () => {
             it('that is custom', () => {
                 const crawler = new CrawlKit(url);
@@ -830,6 +839,15 @@ describe('CrawlKit', function main() {
                 JSON.parse(streamed).should.deep.equal(results);
                 done();
             });
+        });
+
+        it('should error if no URL was given', () => {
+            const crawler = new CrawlKit();
+            return crawler.crawl.bind(crawler).should.throw;
+        });
+        it('should error if erroneous URL was given', () => {
+            const crawler = new CrawlKit('mailto:bla@bla');
+            return crawler.crawl.bind(crawler).should.throw;
         });
     });
 });

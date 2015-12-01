@@ -440,6 +440,9 @@ class CrawlKit {
         });
 
         const promise = new Promise(function workOnPage(resolve) {
+          if (!self.url) {
+              throw new Error(`Defined url '${this.url}' is not valid.`);
+          }
           const seen = new Map();
             crawlTimer.time((stopCrawlTimer) => {
                 let addUrl;

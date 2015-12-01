@@ -13,7 +13,8 @@ crawler.addRunner('title', {
     },
 });
 
-crawler.crawl().then((results) => {
-    /* eslint-disable no-console */
-    console.log(JSON.stringify(results, true, 2));
-});
+/* eslint-disable no-console */
+crawler.crawl()
+    .then((results) => {
+        console.log(JSON.stringify(results, true, 2));
+    }, (err) => console.error(err));

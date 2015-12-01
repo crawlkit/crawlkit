@@ -29,10 +29,11 @@ const crawler = new CrawlKit('http://your/page');
 crawler.setFinder({
     getRunnable: () => anchorFinder
 });
+
 crawler.crawl()
-    .then((data) => {
-        console.log(JSON.stringify(data.results, true, 2));
-    });
+    .then((results) => {
+        console.log(JSON.stringify(results, true, 2));
+    }, (err) => console.error(err));
 ```
 
 ## API
