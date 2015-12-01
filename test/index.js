@@ -453,7 +453,7 @@ describe('CrawlKit', function main() {
             });
         });
 
-        it('should time out', () => {
+        it('should be able to time out', () => {
             const crawler = new CrawlKit(url);
             crawler.timeout = 1000;
             crawler.addRunner('x', {
@@ -466,6 +466,41 @@ describe('CrawlKit', function main() {
                 runners: {
                     x: {
                         error: `Runner 'x' timed out after 1000ms.`,
+                    },
+                },
+            };
+            return crawler.crawl().should.eventually.deep.equal({results});
+        });
+
+        it('should be able to time out (multiple)', () => {
+            const crawler = new CrawlKit(url);
+            crawler.timeout = 1000;
+            crawler.addRunner('x', {
+                getCompanionFiles: () => [],
+                getRunnable: () => function noop() {},
+            });
+
+            crawler.addRunner('y', {
+                getCompanionFiles: () => [],
+                getRunnable: () => function success() { window.callPhantom(null, 'success'); },
+            });
+
+            crawler.addRunner('z', {
+                getCompanionFiles: () => [],
+                getRunnable: () => function noop() {},
+            });
+
+            const results = {};
+            results[`${url}/`] = {
+                runners: {
+                    x: {
+                        error: `Runner 'x' timed out after 1000ms.`,
+                    },
+                    y: {
+                        result: 'success',
+                    },
+                    z: {
+                        error: `Runner 'z' timed out after 1000ms.`,
                     },
                 },
             };
