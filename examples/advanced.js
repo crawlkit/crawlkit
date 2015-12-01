@@ -1,6 +1,6 @@
 'use strict'; // eslint-disable-line
 const CrawlKit = require('crawlkit');
-const genericAnchors = require('../finders/genericAnchors');
+const genericAnchors = require('crawlkit/finders/genericAnchors');
 const urijs = require('urijs');
 
 const baseURL = 'http://www.feth.com';
