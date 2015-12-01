@@ -13,4 +13,9 @@ crawler.addRunner('title', {
     },
 });
 
-crawler.crawl(true).pipe(process.stdout);
+const stream = crawler.crawl(true);
+stream.on('end', () => {
+    /* eslint-disable no-console */
+    console.log('done!');
+});
+stream.pipe(process.stdout);
