@@ -393,7 +393,7 @@ class CrawlKit {
         }
 
 
-        info(`Starting to crawl. Concurrency is %s`, self.concurrency);
+        info(`Starting to crawl. Concurrent PhantomJS browsers: ${self.concurrency}.`);
         const pool = poolModule.Pool({ // eslint-disable-line
             name: 'phantomjs',
             create: (callback) => {
