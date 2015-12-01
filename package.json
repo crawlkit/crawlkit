@@ -13,6 +13,10 @@
     "ajax",
     "scraping"
   ],
+  "directories": {
+    "example": "./examples",
+    "lib": "./src"
+  },
   "scripts": {
     "docs": "jsdoc -c conf.json",
     "test": "mocha",
