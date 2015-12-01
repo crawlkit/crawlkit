@@ -34,6 +34,7 @@ crawler.crawl()
         console.log(JSON.stringify(data.results, true, 2));
     });
 ```
+Also, have a look at the [samples](https://github.com/crawlkit/crawlkit/tree/master/examples).
 
 ## API
 See the [API docs](http://crawlkit.github.io/crawlkit/docs/).
