@@ -60,7 +60,8 @@ function getFinderRunnable(crawlerInstance) {
 }
 
 function getUrlFilter(crawlerInstance) {
-    return getFinder(crawlerInstance).urlFilter || null;
+    const finder = getFinder(crawlerInstance);
+    return finder.urlFilter ? finder.urlFilter.bind(finder) : null;
 }
 
 function getFinderParameters(crawlerInstance) {

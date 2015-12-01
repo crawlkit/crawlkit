@@ -279,6 +279,31 @@ describe('CrawlKit', function main() {
 
                 return crawler.crawl().should.eventually.deep.equal({results});
             });
+
+            it('should be called with the scope where it came from', () => {
+                const crawler = new CrawlKit(url);
+
+                const results = {};
+                results[`${url}/`] = {};
+                results[`${url}/hidden.html`] = {};
+
+                class HiddenFinder {
+                    constructor(hiddenUrl) {
+                        this.hiddenUrl = hiddenUrl;
+                    }
+                    getRunnable() {
+                        return genericLinkFinder;
+                    }
+
+                    urlFilter() {
+                        return this.hiddenUrl;
+                    }
+                }
+
+                crawler.setFinder(new HiddenFinder(`${url}/hidden.html`));
+
+                return crawler.crawl().should.eventually.deep.equal({results});
+            });
         });
     });
 
