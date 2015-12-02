@@ -22,7 +22,7 @@ chai.use(sinonChai);
 const basic = auth.basic({
     realm: 'Restricted area',
 }, (username, password, cb) => {
-        cb(username === 'foo' && password === 'bar');
+    cb(username === 'foo' && password === 'bar');
 });
 
 class DelayedRunner {
@@ -485,6 +485,31 @@ describe('CrawlKit', function main() {
                 };
                 return crawler.crawl().should.eventually.deep.equal({results});
             });
+
+            it('should recover from unavailable companion files', () => {
+                const crawler = new CrawlKit(url);
+                crawler.addRunner('broken', {
+                    getCompanionFiles: () => [
+                        '/not/available.js',
+                        '/not/existent.js',
+                    ],
+                    getRunnable: () => {
+                        return function noop() {
+                            window.callPhantom(null, 'success');
+                        };
+                    },
+                });
+
+                const results = {};
+                results[`${url}/`] = {
+                    runners: {
+                        broken: {
+                            error: "Failed to inject companion file '/not/available.js'",
+                        },
+                    },
+                };
+                return crawler.crawl().should.eventually.deep.equal({results});
+            });
         });
 
         it('should be able to time out', () => {
@@ -499,7 +524,7 @@ describe('CrawlKit', function main() {
             results[`${url}/`] = {
                 runners: {
                     x: {
-                        error: `Runner 'x' timed out after 1000ms.`,
+                        error: `Timed out after 1000ms.`,
                     },
                 },
             };
@@ -528,13 +553,13 @@ describe('CrawlKit', function main() {
             results[`${url}/`] = {
                 runners: {
                     x: {
-                        error: `Runner 'x' timed out after 1000ms.`,
+                        error: `Timed out after 1000ms.`,
                     },
                     y: {
                         result: 'success',
                     },
                     z: {
-                        error: `Runner 'z' timed out after 1000ms.`,
+                        error: `Timed out after 1000ms.`,
                     },
                 },
             };
