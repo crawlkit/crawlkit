@@ -50,10 +50,14 @@ module.exports = (scope, workerLogger, runners, workerLogPrefix, timeout) => {
             .then((companionFiles) => {
                 return Promise.all((companionFiles || []).map((filename) => {
                     return new Promise((injected, reject) => {
-                        scope.page.injectJs(filename, (err) => {
+                        scope.page.injectJs(filename, (err, result) => {
                             if (err) {
-                                runnerError(`Failed to inject companion file '${filename}' on ${scope.url}`);
+                                runnerError(err);
                                 return reject(err);
+                            }
+                            if (!result) {
+                                runnerError(`Failed to inject companion file '${filename}' on ${scope.url}`);
+                                return reject(`Failed to inject companion file '${filename}'`);
                             }
                             runnerDebug(`Injected companion file '${filename}' on ${scope.url}`);
                             injected();

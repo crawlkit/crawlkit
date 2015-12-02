@@ -486,11 +486,10 @@ describe('CrawlKit', function main() {
                 return crawler.crawl().should.eventually.deep.equal({results});
             });
 
-            it.skip('should recover from unavailable companion files', () => {
+            it('should recover from unavailable companion files', () => {
                 const crawler = new CrawlKit(url);
                 crawler.addRunner('broken', {
                     getCompanionFiles: () => [
-                        '',
                         '/not/available.js',
                         '/not/existent.js',
                     ],
@@ -505,7 +504,7 @@ describe('CrawlKit', function main() {
                 results[`${url}/`] = {
                     runners: {
                         broken: {
-                            error: 'some error here',
+                            error: "Failed to inject companion file '/not/available.js'",
                         },
                     },
                 };
