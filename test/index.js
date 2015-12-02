@@ -485,6 +485,32 @@ describe('CrawlKit', function main() {
                 };
                 return crawler.crawl().should.eventually.deep.equal({results});
             });
+
+            it.skip('should recover from unavailable companion files', () => {
+                const crawler = new CrawlKit(url);
+                crawler.addRunner('broken', {
+                    getCompanionFiles: () => [
+                        '',
+                        '/not/available.js',
+                        '/not/existent.js',
+                    ],
+                    getRunnable: () => {
+                        return function noop() {
+                            window.callPhantom(null, 'success');
+                        };
+                    },
+                });
+
+                const results = {};
+                results[`${url}/`] = {
+                    runners: {
+                        broken: {
+                            error: 'some error here',
+                        },
+                    },
+                };
+                return crawler.crawl().should.eventually.deep.equal({results});
+            });
         });
 
         it('should be able to time out', () => {
@@ -499,7 +525,7 @@ describe('CrawlKit', function main() {
             results[`${url}/`] = {
                 runners: {
                     x: {
-                        error: `Runner 'x' timed out after 1000ms.`,
+                        error: `Timed out after 1000ms.`,
                     },
                 },
             };
@@ -528,13 +554,13 @@ describe('CrawlKit', function main() {
             results[`${url}/`] = {
                 runners: {
                     x: {
-                        error: `Runner 'x' timed out after 1000ms.`,
+                        error: `Timed out after 1000ms.`,
                     },
                     y: {
                         result: 'success',
                     },
                     z: {
-                        error: `Runner 'z' timed out after 1000ms.`,
+                        error: `Timed out after 1000ms.`,
                     },
                 },
             };
