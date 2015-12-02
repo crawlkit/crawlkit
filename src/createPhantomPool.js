@@ -4,7 +4,7 @@ const poolModule = require('generic-pool');
 const async = require('async');
 const driver = require('node-phantom-simple');
 const phantomjs = require('phantomjs');
-const d = require('debug');
+const debug = require('debug');
 
 module.exports = (logger, concurrency, phantomParameters, browserCookies) => {
     const poolDebug = {};
@@ -49,7 +49,7 @@ module.exports = (logger, concurrency, phantomParameters, browserCookies) => {
         max: concurrency,
         min: 1,
         log: (message, level) => {
-            poolDebug[level] = poolDebug[level] || d(`crawlkit:pool:phantomjs:${level}`);
+            poolDebug[level] = poolDebug[level] || debug(`crawlkit:pool:phantomjs:${level}`);
             poolDebug[level](message);
         },
     });

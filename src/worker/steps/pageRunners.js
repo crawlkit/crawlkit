@@ -1,6 +1,6 @@
 'use strict'; // eslint-disable-line
 
-const d = require('debug');
+const debug = require('debug');
 const once = require('once');
 const path = require('path');
 const isPhantomError = require(path.join(__dirname, '..', '..', 'isPhantomError.js'));
@@ -28,10 +28,10 @@ module.exports = (scope, workerLogger, runners, workerLogPrefix, timeout) => {
 
             const runnerId = next.value[0];
             const runnerLogPrefix = `${workerLogPrefix}:runner(${runnerId})`;
-            const runnerConsole = d(`${runnerLogPrefix}:console:debug`);
-            const runnerInfo = d(`${runnerLogPrefix}:info`);
-            const runnerDebug = d(`${runnerLogPrefix}:debug`);
-            const runnerError = d(`${runnerLogPrefix}:error`);
+            const runnerConsole = debug(`${runnerLogPrefix}:console:debug`);
+            const runnerInfo = debug(`${runnerLogPrefix}:info`);
+            const runnerDebug = debug(`${runnerLogPrefix}:debug`);
+            const runnerError = debug(`${runnerLogPrefix}:error`);
 
             function doneAndNext(err, result) {
                 clearTimeout(timeoutHandler);
