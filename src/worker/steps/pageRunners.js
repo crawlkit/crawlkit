@@ -13,8 +13,11 @@ module.exports = (scope, workerLogger, runners, workerLogPrefix, timeout) => {
             return cb();
         }
 
-
-        const done = once(cb);
+        let timeoutHandler;
+        const done = once((err) => {
+            clearTimeout(timeoutHandler);
+            cb(err);
+        });
         const runnerIterator = runners[Symbol.iterator]();
         const results = scope.result.runners = {};
         const nextRunner = () => {
@@ -22,7 +25,7 @@ module.exports = (scope, workerLogger, runners, workerLogPrefix, timeout) => {
             if (next.done) {
                 return done();
             }
-            let timeoutHandler;
+
             const runnerId = next.value[0];
             const runnerLogPrefix = `${workerLogPrefix}:runner(${runnerId})`;
             const runnerConsole = d(`${runnerLogPrefix}:console:debug`);
@@ -82,7 +85,6 @@ module.exports = (scope, workerLogger, runners, workerLogPrefix, timeout) => {
                 const params = [runner.getRunnable()].concat(parameters);
                 params.push((err) => {
                     if (err) {
-                        clearTimeout(timeoutHandler);
                         return done(err);
                     }
                     workerLogger.debug(`Runner '${runnerId}' evaluated`);
@@ -92,7 +94,6 @@ module.exports = (scope, workerLogger, runners, workerLogPrefix, timeout) => {
             }, doneAndNext)
             .catch((err) => {
                 if (err instanceof HeadlessError) {
-                    clearTimeout(timeoutHandler);
                     done(err);
                 } else {
                     doneAndNext(err);
