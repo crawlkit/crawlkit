@@ -22,7 +22,7 @@ chai.use(sinonChai);
 const basic = auth.basic({
     realm: 'Restricted area',
 }, (username, password, cb) => {
-        cb(username === 'foo' && password === 'bar');
+    cb(username === 'foo' && password === 'bar');
 });
 
 class DelayedRunner {
