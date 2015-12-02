@@ -3,7 +3,7 @@
 const HeadlessError = require('node-phantom-simple/headless_error');
 
 const async = require('async');
-const d = require('debug');
+const debug = require('debug');
 const urijs = require('urijs');
 
 const NanoTimer = require('nanotimer');
@@ -21,9 +21,9 @@ const step = {
 };
 
 const logger = {
-    debug: d('crawlkit:debug'),
-    info: d('crawlkit:info'),
-    error: d('crawlkit:error'),
+    debug: debug('crawlkit:debug'),
+    info: debug('crawlkit:info'),
+    error: debug('crawlkit:error'),
 };
 
 const concurrencyKey = Symbol();
@@ -347,9 +347,9 @@ class CrawlKit {
                     scope.tries++;
                     const workerLogPrefix = `crawlkit:task(${scope.id})`;
                     const workerLogger = {
-                        debug: d(`${workerLogPrefix}:debug`),
-                        info: d(`${workerLogPrefix}:info`),
-                        error: d(`${workerLogPrefix}:error`),
+                        debug: debug(`${workerLogPrefix}:debug`),
+                        info: debug(`${workerLogPrefix}:info`),
+                        error: debug(`${workerLogPrefix}:error`),
                     };
                     const workerTimer = new NanoTimer();
 
