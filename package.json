@@ -7,11 +7,16 @@
   "keywords": [
     "accessibility",
     "a11y",
+    "crawl",
     "crawler",
     "webkit",
     "phantom",
     "ajax",
-    "scraping"
+    "scraping",
+    "audit",
+    "axe",
+    "htmlcs",
+    "axs"
   ],
   "directories": {
     "example": "./examples",
