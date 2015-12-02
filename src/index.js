@@ -10,6 +10,7 @@ const once = require('once');
 const NanoTimer = require('nanotimer');
 const Chance = require('chance');
 const JSONStream = require('JSONStream');
+const stepAcquireBrowser = require('./worker/steps/acquireBrowser.js');
 
 const debug = d('crawlkit:debug');
 const info = d('crawlkit:info');
@@ -449,31 +450,24 @@ class CrawlKit {
                 const q = async.queue(function queueWorker(task, workerFinished) {
                     task.tries++;
                     const workerLogPrefix = `crawlkit:task(${task.id})`;
-                    const workerDebug = d(`${workerLogPrefix}:debug`);
-                    const workerInfo = d(`${workerLogPrefix}:info`);
-                    const workerError = d(`${workerLogPrefix}:error`);
+                    const workerLogger = {
+                        debug: d(`${workerLogPrefix}:debug`),
+                        info: d(`${workerLogPrefix}:info`),
+                        error: d(`${workerLogPrefix}:error`),
+                    };
                     const workerTimer = new NanoTimer();
 
                     info(`Worker started - ${q.length()} task(s) left in the queue.`);
-                    workerInfo(`Took ${task.url} from queue` + (task.tries > 1 ? ` (attempt ${task.tries})` : '') + '.');
+                    workerLogger.info(`Took ${task.url} from queue` + (task.tries > 1 ? ` (attempt ${task.tries})` : '') + '.');
                     workerTimer.time((stopWorkerTimer) => {
                         async.waterfall([
-                            function acquireBrowserFromPool(done) {
-                                pool.acquire((err, browser) => {
-                                    const scope = {browser};
-                                    if (err) {
-                                        return done(err, scope);
-                                    }
-                                    workerDebug(`Acquired phantom from pool.`);
-                                    done(null, scope);
-                                });
-                            },
+                            stepAcquireBrowser({}, pool, workerLogger),
                             function createPage(scope, done) {
                                 scope.browser.createPage((err, page) => {
                                     if (err) {
                                         return done(err, scope);
                                     }
-                                    workerDebug(`Page created.`);
+                                    workerLogger.debug(`Page created.`);
                                     scope.page = page;
                                     done(null, scope);
                                 });
@@ -490,13 +484,13 @@ class CrawlKit {
 
                                 Promise.all(Object.keys(settingsToSet).map((key) => {
                                     return new Promise((success, reject) => {
-                                        workerDebug(`Attempting to set setting ${key} => ${JSON.stringify(settingsToSet[key])}`);
+                                        workerLogger.debug(`Attempting to set setting ${key} => ${JSON.stringify(settingsToSet[key])}`);
                                         scope.page.set(key, settingsToSet[key], (settingErr) => {
                                             if (settingErr) {
-                                                workerError(`Setting ${key} failed`);
+                                                workerLogger.error(`Setting ${key} failed`);
                                                 return reject(settingErr);
                                             }
-                                            workerDebug(`Successfully set setting ${key}`);
+                                            workerLogger.debug(`Successfully set setting ${key}`);
                                             success();
                                         });
                                     });
@@ -513,7 +507,7 @@ class CrawlKit {
                                         return;
                                     }
 
-                                    workerDebug(`Page for ${task.url} asks for redirect. Will navigatate? ${willNavigate ? 'Yes' : 'No'}`);
+                                    workerLogger.debug(`Page for ${task.url} asks for redirect. Will navigatate? ${willNavigate ? 'Yes' : 'No'}`);
 
                                     if (self.followRedirects) {
                                         if (mainFrame && type === 'Other') {
@@ -525,7 +519,7 @@ class CrawlKit {
                                                     done(`page for ${task.url} redirected to ${redirectedToUrl}`, scope);
                                                 }
                                             } catch (e) {
-                                                workerDebug(`Error on redirect filter (${redirectedToUrl}, ${task.url})`);
+                                                workerLogger.debug(`Error on redirect filter (${redirectedToUrl}, ${task.url})`);
                                                 done(e, scope);
                                             }
                                         }
@@ -539,7 +533,7 @@ class CrawlKit {
                                     if (status === 'fail') {
                                         return done(`Failed to open ${task.url}`, scope);
                                     }
-                                    workerDebug(`Page opened`);
+                                    workerLogger.debug(`Page opened`);
                                     done(null, scope);
                                 });
                             },
@@ -558,24 +552,24 @@ class CrawlKit {
                                         return done(err);
                                     }
                                     if (urls instanceof Array) {
-                                        workerInfo(`Finder discovered ${urls.length} URLs.`);
+                                        workerLogger.info(`Finder discovered ${urls.length} URLs.`);
                                         urls.forEach((url) => {
                                             try {
                                             const state = applyUrlFilterFn(getUrlFilter(self), url, task.url, addUrl);
                                                 if (state === false) {
-                                                    workerDebug(`URL ${url} ignored due to URL filter.`);
+                                                    workerLogger.debug(`URL ${url} ignored due to URL filter.`);
                                                 } else if (url !== state) {
-                                                    workerDebug(`${url} was rewritten to ${state}.`);
+                                                    workerLogger.debug(`${url} was rewritten to ${state}.`);
                                                 } else {
-                                                    workerDebug(`${url} was added.`);
+                                                    workerLogger.debug(`${url} was added.`);
                                                 }
                                             } catch (e) {
-                                                workerDebug(`Error on URL filter (${url}, ${task.url})`);
-                                                workerDebug(e);
+                                                workerLogger.debug(`Error on URL filter (${url}, ${task.url})`);
+                                                workerLogger.debug(e);
                                             }
                                         });
                                     } else {
-                                        workerError('Given finder returned non-Array value');
+                                        workerLogger.error('Given finder returned non-Array value');
                                     }
                                     done();
                                 }
@@ -584,7 +578,7 @@ class CrawlKit {
                                     if (isPhantomError(trace)) {
                                         phantomCallback(err);
                                     } else {
-                                        workerDebug(`Page: "${err}" in ${JSON.stringify(trace)}`);
+                                        workerLogger.debug(`Page: "${err}" in ${JSON.stringify(trace)}`);
                                     }
                                 };
                                 timeoutHandler = setTimeout(() => {
@@ -596,7 +590,7 @@ class CrawlKit {
                                         clearTimeout(timeoutHandler);
                                         return done(err);
                                     }
-                                    workerDebug(`Finder code evaluated`);
+                                    workerLogger.debug(`Finder code evaluated`);
                                 });
                                 scope.page.evaluate.apply(scope.page, params);
                             },
@@ -606,7 +600,7 @@ class CrawlKit {
                                 });
 
                                 if (getRunners(self).size === 0) {
-                                    workerDebug('No runners defined');
+                                    workerLogger.debug('No runners defined');
                                     return done();
                                 }
                                 const runnerIterator = getRunners(self)[Symbol.iterator]();
@@ -628,10 +622,10 @@ class CrawlKit {
                                           return new Promise((injected, reject) => {
                                               scope.page.injectJs(filename, (err) => {
                                                   if (err) {
-                                                      workerError(`Failed to inject companion file '${filename}' for runner '${runnerId}' on ${task.url}`);
+                                                      workerLogger.error(`Failed to inject companion file '${filename}' for runner '${runnerId}' on ${task.url}`);
                                                       return reject(err);
                                                   }
-                                                  workerDebug(`Injected companion file '${filename}' for runner '${runnerId}' on ${task.url}`);
+                                                  workerLogger.debug(`Injected companion file '${filename}' for runner '${runnerId}' on ${task.url}`);
                                                   injected();
                                               });
                                           });
@@ -675,7 +669,7 @@ class CrawlKit {
                                                 clearTimeout(timeoutHandler);
                                                 return done(err);
                                             }
-                                            workerDebug(`Runner '${runnerId}' evaluated`);
+                                            workerLogger.debug(`Runner '${runnerId}' evaluated`);
                                         });
                                         scope.page.evaluate.apply(scope.page, params);
                                     }, done)
@@ -688,7 +682,7 @@ class CrawlKit {
                             },
                         ], (err, scope) => {
                             if (err) {
-                                workerError(err);
+                                workerLogger.error(err);
                                 task.result.error = err;
                             }
                             if (shouldStream) {
@@ -696,17 +690,17 @@ class CrawlKit {
                             }
 
                             if (scope.page) {
-                                workerDebug(`Page closed.`);
+                                workerLogger.debug(`Page closed.`);
                                 scope.page.close();
                             }
                             if (scope.browser) {
                                 if (err && (err instanceof HeadlessError)) {
                                     // take no chances - if there was an error on Phantom side, we should get rid of the instance
-                                    workerInfo(`Phantom instance destroyed.`);
+                                    workerLogger.info(`Phantom instance destroyed.`);
                                     pool.destroy(scope.browser);
                                     scope.browser = null;
                                 } else {
-                                    workerDebug(`Phantom released to pool.`);
+                                    workerLogger.debug(`Phantom released to pool.`);
                                     pool.release(scope.browser);
                                 }
                             }
@@ -719,7 +713,7 @@ class CrawlKit {
                             workerFinished(err);
                         });
                     }, '', 'm', (workerRuntime) => {
-                        workerInfo('Finished. Took %sms.', workerRuntime);
+                        workerLogger.info('Finished. Took %sms.', workerRuntime);
                     });
                 }, self.concurrency);
 
