@@ -1,21 +1,30 @@
 'use strict'; // eslint-disable-line
-const driver = require('node-phantom-simple');
+
 const HeadlessError = require('node-phantom-simple/headless_error');
-const phantomjs = require('phantomjs');
+
 const async = require('async');
 const d = require('debug');
 const urijs = require('urijs');
-const poolModule = require('generic-pool');
-const once = require('once');
+
 const NanoTimer = require('nanotimer');
 const Chance = require('chance');
 const JSONStream = require('JSONStream');
-const stepAcquireBrowser = require('./worker/steps/acquireBrowser.js');
+const createPhantomPool = require('./createPhantomPool.js');
 
-const debug = d('crawlkit:debug');
-const info = d('crawlkit:info');
-const error = d('crawlkit:error');
-const poolDebug = {};
+const step = {
+    acquireBrowser: require('./worker/steps/acquireBrowser.js'),
+    setPageSettings: require('./worker/steps/setPageSettings.js'),
+    createPage: require('./worker/steps/createPage.js'),
+    openPage: require('./worker/steps/openPage.js'),
+    findLinks: require('./worker/steps/findLinks.js'),
+    pageRunners: require('./worker/steps/pageRunners.js'),
+};
+
+const logger = {
+    debug: d('crawlkit:debug'),
+    info: d('crawlkit:info'),
+    error: d('crawlkit:error'),
+};
 
 const concurrencyKey = Symbol();
 const urlKey = Symbol();
@@ -53,80 +62,12 @@ function getFinder(crawlerInstance) {
     return crawlerInstance[finderKey].finder;
 }
 
-function getFinderRunnable(crawlerInstance) {
-    if (!getFinder(crawlerInstance)) {
-        return null;
-    }
-    return getFinder(crawlerInstance).getRunnable() || null;
-}
-
-function getUrlFilter(crawlerInstance) {
-    const finder = getFinder(crawlerInstance);
-    return finder.urlFilter ? finder.urlFilter.bind(finder) : null;
-}
-
 function getFinderParameters(crawlerInstance) {
-    return crawlerInstance[finderKey].parameters || [];
+    return crawlerInstance[finderKey].parameters;
 }
 
 function getRunners(crawlerInstance) {
     return crawlerInstance[runnerKey];
-}
-
-/**
-* Checks whether a given stack trace belongs to an error from a Phantom evaluation.
-* This can be used to distinguish between stack traces of errors on a page opened
-* with PhantomJS and evaluated code within.
-*
-* @private
-* @param {Array.<Object>} trace The Phantom trace (for example from [page.onError]{@link http://phantomjs.org/api/webpage/handler/on-error.html})
-* @return {boolean} Whether the trace belongs to a PhantomJS-based execution or not.
-*/
-function isPhantomError(trace) {
-    if (!(trace instanceof Array)) {
-        return false;
-    }
-    for (let i = 0; i < trace.length; i++) {
-        const obj = trace[i];
-        try {
-            if (urijs(obj.file).protocol() === 'phantomjs') {
-                return true;
-            }
-        } catch (e) {
-            continue;
-        }
-    }
-    return false;
-}
-
-/**
-* This applies a URL filter function to a given URL,
-* based on a source URL and calls a given callback
-* if the filter does not return false.
-*
-* @private
-* @param {Function} [filterFn] The filter function to call on the URL. If not given, the URL will be assumed accepted.
-* @param {String} url The URL to filter. If this URL is not valid, it will be silently discarded (callback will not be called)
-* @param {String} fromUrl A URL where the URL to be filter originated from. In case the filter returns a relative URL, it will be rewritten relative to the this URL.
-* @param {Function} cb A function that is called with the rewritten URL
-* @param {(boolean|String)} returns the added URL if it was added. False if the URL was discarded. Throws an error if there is a problem with the URL.
-*/
-function applyUrlFilterFn(filterFn, url, fromUrl, cb) {
-    const uri = urijs(url);
-    const fromUri = urijs(fromUrl);
-    fromUri.normalize();
-    let absoluteUrl = uri.absoluteTo(fromUri).toString();
-    if (typeof filterFn === 'function') {
-        const rewrittenUrl = filterFn(absoluteUrl, fromUri.toString());
-        if (rewrittenUrl === false) {
-            return false;
-        }
-        if (rewrittenUrl !== absoluteUrl) {
-            absoluteUrl = urijs(rewrittenUrl).absoluteTo(fromUri).toString();
-        }
-    }
-    cb(absoluteUrl);
-    return absoluteUrl;
 }
 
 /**
@@ -386,70 +327,25 @@ class CrawlKit {
     * @return {(Stream|Promise.<Object>)} By default a Promise object is returned that resolves to the result. If streaming is enabled it returns a JSON stream of the results.
     */
     crawl(shouldStream) {
-        const self = this;
         const crawlTimer = new NanoTimer();
         let stream;
         if (shouldStream) {
             stream = JSONStream.stringifyObject();
         }
 
+        logger.info(`Starting to crawl. Concurrent PhantomJS browsers: ${this.concurrency}.`);
+        const pool = createPhantomPool(logger, this.concurrency, this.phantomParameters, this.browserCookies);
 
-        info(`Starting to crawl. Concurrent PhantomJS browsers: ${self.concurrency}.`);
-        const pool = poolModule.Pool({ // eslint-disable-line
-            name: 'phantomjs',
-            create: (callback) => {
-                async.waterfall([
-                    function createPhantom(done) {
-                        driver.create({
-                            path: phantomjs.path,
-                            parameters: self.phantomParameters,
-                        }, done);
-                    },
-                    function addCookies(browser, done) {
-                        if (self.browserCookies.length === 0) {
-                            return done(null, browser);
-                        }
-                        Promise.all(self.browserCookies.map((cookie) => {
-                          return new Promise((success, reject) => {
-                              debug(`adding cookie '${cookie.name}=${cookie.value}'`);
-                              browser.addCookie(cookie, (cookieErr) => {
-                                  if (cookieErr) {
-                                      error(`adding cookie '${cookie.name}' failed`);
-                                      return reject(cookieErr);
-                                  }
-                                  success();
-                              });
-                          });
-                        })).then(() => {
-                            debug(`finished adding cookies`);
-                            done(null, browser);
-                        }, (cookieErr) => {
-                            done(cookieErr, browser);
-                        });
-                    },
-                ], callback);
-            },
-            destroy: (browser) => {
-                browser.exit();
-            },
-            max: self.concurrency,
-            min: 1,
-            log: (message, level) => {
-                poolDebug[level] = poolDebug[level] || d(`crawlkit:pool:phantomjs:${level}`);
-                poolDebug[level](message);
-            },
-        });
-
-        const promise = new Promise(function workOnPage(resolve) {
-          if (!self.url) {
+        const promise = new Promise((resolve) => {
+          if (!this.url) {
               throw new Error(`Defined url '${this.url}' is not valid.`);
           }
           const seen = new Map();
             crawlTimer.time((stopCrawlTimer) => {
                 let addUrl;
-                const q = async.queue(function queueWorker(task, workerFinished) {
-                    task.tries++;
-                    const workerLogPrefix = `crawlkit:task(${task.id})`;
+                const q = async.queue((scope, workerFinished) => {
+                    scope.tries++;
+                    const workerLogPrefix = `crawlkit:task(${scope.id})`;
                     const workerLogger = {
                         debug: d(`${workerLogPrefix}:debug`),
                         info: d(`${workerLogPrefix}:info`),
@@ -457,236 +353,20 @@ class CrawlKit {
                     };
                     const workerTimer = new NanoTimer();
 
-                    info(`Worker started - ${q.length()} task(s) left in the queue.`);
-                    workerLogger.info(`Took ${task.url} from queue` + (task.tries > 1 ? ` (attempt ${task.tries})` : '') + '.');
+                    logger.info(`Worker started - ${q.length()} task(s) left in the queue.`);
+                    workerLogger.info(`Took ${scope.url} from queue` + (scope.tries > 1 ? ` (attempt ${scope.tries})` : '') + '.');
                     workerTimer.time((stopWorkerTimer) => {
                         async.waterfall([
-                            stepAcquireBrowser({}, pool, workerLogger),
-                            function createPage(scope, done) {
-                                scope.browser.createPage((err, page) => {
-                                    if (err) {
-                                        return done(err, scope);
-                                    }
-                                    workerLogger.debug(`Page created.`);
-                                    scope.page = page;
-                                    done(null, scope);
-                                });
-                            },
-                            function setPageSettings(scope, done) {
-                                const settingsToSet = Object.assign({}, self.phantomPageSettings);
-                                if (!self.followRedirects) {
-                                    // TODO: fix - enabling the next line currently stalls PhantomJS
-                                    // but it is needed to prevent redirects when redirects are not
-                                    // supposed to be followed
-
-                                    // settingsToSet.navigationLocked = true;
-                                }
-
-                                Promise.all(Object.keys(settingsToSet).map((key) => {
-                                    return new Promise((success, reject) => {
-                                        workerLogger.debug(`Attempting to set setting ${key} => ${JSON.stringify(settingsToSet[key])}`);
-                                        scope.page.set(key, settingsToSet[key], (settingErr) => {
-                                            if (settingErr) {
-                                                workerLogger.error(`Setting ${key} failed`);
-                                                return reject(settingErr);
-                                            }
-                                            workerLogger.debug(`Successfully set setting ${key}`);
-                                            success();
-                                        });
-                                    });
-                                })).then(() => {
-                                    done(null, scope);
-                                }, (settingErr) => {
-                                    done(settingErr, scope);
-                                });
-                            },
-                            function openPage(scope, done) {
-                                scope.page.onNavigationRequested = (redirectedToUrl, type, willNavigate, mainFrame) => {
-                                    if (urijs(task.url).equals(redirectedToUrl)) {
-                                        // this is the initial open of the task URL, ignore
-                                        return;
-                                    }
-
-                                    workerLogger.debug(`Page for ${task.url} asks for redirect. Will navigatate? ${willNavigate ? 'Yes' : 'No'}`);
-
-                                    if (self.followRedirects) {
-                                        if (mainFrame && type === 'Other') {
-                                            try {
-                                            const state = applyUrlFilterFn(self.redirectFilter, redirectedToUrl, task.url, addUrl);
-                                                if (state === false) {
-                                                    done(`URL ${redirectedToUrl} was not followed`, scope);
-                                                } else {
-                                                    done(`page for ${task.url} redirected to ${redirectedToUrl}`, scope);
-                                                }
-                                            } catch (e) {
-                                                workerLogger.debug(`Error on redirect filter (${redirectedToUrl}, ${task.url})`);
-                                                done(e, scope);
-                                            }
-                                        }
-                                    }
-                                };
-
-                                scope.page.open(task.url, (err, status) => {
-                                    if (err) {
-                                        return done(err, scope);
-                                    }
-                                    if (status === 'fail') {
-                                        return done(`Failed to open ${task.url}`, scope);
-                                    }
-                                    workerLogger.debug(`Page opened`);
-                                    done(null, scope);
-                                });
-                            },
-                            function findLinks(scope, cb) {
-                                if (!getFinder(self)) {
-                                    return cb(null, scope);
-                                }
-
-                                let timeoutHandler;
-                                const done = once((err) => {
-                                    clearTimeout(timeoutHandler);
-                                    cb(err, scope);
-                                });
-                                function phantomCallback(err, urls) {
-                                    if (err) {
-                                        return done(err);
-                                    }
-                                    if (urls instanceof Array) {
-                                        workerLogger.info(`Finder discovered ${urls.length} URLs.`);
-                                        urls.forEach((url) => {
-                                            try {
-                                            const state = applyUrlFilterFn(getUrlFilter(self), url, task.url, addUrl);
-                                                if (state === false) {
-                                                    workerLogger.debug(`URL ${url} ignored due to URL filter.`);
-                                                } else if (url !== state) {
-                                                    workerLogger.debug(`${url} was rewritten to ${state}.`);
-                                                } else {
-                                                    workerLogger.debug(`${url} was added.`);
-                                                }
-                                            } catch (e) {
-                                                workerLogger.debug(`Error on URL filter (${url}, ${task.url})`);
-                                                workerLogger.debug(e);
-                                            }
-                                        });
-                                    } else {
-                                        workerLogger.error('Given finder returned non-Array value');
-                                    }
-                                    done();
-                                }
-                                scope.page.onCallback = phantomCallback;
-                                scope.page.onError = (err, trace) => {
-                                    if (isPhantomError(trace)) {
-                                        phantomCallback(err);
-                                    } else {
-                                        workerLogger.debug(`Page: "${err}" in ${JSON.stringify(trace)}`);
-                                    }
-                                };
-                                timeoutHandler = setTimeout(() => {
-                                    phantomCallback(`Finder timed out after ${self.timeout}ms.`, null);
-                                }, self.timeout);
-                                const params = [getFinderRunnable(self)].concat(getFinderParameters(self));
-                                params.push((err) => {
-                                    if (err) {
-                                        clearTimeout(timeoutHandler);
-                                        return done(err);
-                                    }
-                                    workerLogger.debug(`Finder code evaluated`);
-                                });
-                                scope.page.evaluate.apply(scope.page, params);
-                            },
-                            function pageRunners(scope, cb) {
-                                const done = once((err) => {
-                                    cb(err, scope);
-                                });
-
-                                if (getRunners(self).size === 0) {
-                                    workerLogger.debug('No runners defined');
-                                    return done();
-                                }
-                                const runnerIterator = getRunners(self)[Symbol.iterator]();
-                                const results = task.result.runners = {};
-                                const nextRunner = () => {
-                                    const next = runnerIterator.next();
-                                    if (next.done) {
-                                        return done();
-                                    }
-                                    let timeoutHandler;
-                                    const runnerId = next.value[0];
-                                    const runnerObj = next.value[1];
-                                    const runner = runnerObj.runner;
-                                    const parameters = runnerObj.parameters;
-
-                                    Promise.resolve(runner.getCompanionFiles())
-                                    .then((companionFiles) => {
-                                      return Promise.all((companionFiles || []).map((filename) => {
-                                          return new Promise((injected, reject) => {
-                                              scope.page.injectJs(filename, (err) => {
-                                                  if (err) {
-                                                      workerLogger.error(`Failed to inject companion file '${filename}' for runner '${runnerId}' on ${task.url}`);
-                                                      return reject(err);
-                                                  }
-                                                  workerLogger.debug(`Injected companion file '${filename}' for runner '${runnerId}' on ${task.url}`);
-                                                  injected();
-                                              });
-                                          });
-                                      }));
-                                    }, done)
-                                    .then(function run() {
-                                        const runnerLogPrefix = `${workerLogPrefix}:runner(${runnerId})`;
-                                        const runnerConsole = d(`${runnerLogPrefix}:console:debug`);
-                                        const runnerInfo = d(`${runnerLogPrefix}:info`);
-                                        const runnerDebug = d(`${runnerLogPrefix}:debug`);
-                                        const runnerError = d(`${runnerLogPrefix}:error`);
-
-                                        const phantomCallback = (err, result) => {
-                                            clearTimeout(timeoutHandler);
-                                            results[runnerId] = {};
-                                            if (err) {
-                                                results[runnerId].error = err;
-                                                runnerError(err);
-                                            } else {
-                                                results[runnerId].result = result;
-                                                runnerInfo(`Finished.`);
-                                            }
-                                            nextRunner();
-                                        };
-                                        scope.page.onCallback = phantomCallback;
-                                        scope.page.onError = (err, trace) => {
-                                            if (isPhantomError(trace)) {
-                                                phantomCallback(err);
-                                            } else {
-                                                runnerDebug(`Page: "${err}" in ${JSON.stringify(trace)}`);
-                                            }
-                                        };
-                                        scope.page.onConsoleMessage = runnerConsole;
-                                        runnerInfo(`Started.`);
-                                        timeoutHandler = setTimeout(() => {
-                                            phantomCallback(`Runner '${runnerId}' timed out after ${self.timeout}ms.`, null);
-                                        }, self.timeout);
-                                        const params = [runner.getRunnable()].concat(parameters);
-                                        params.push((err) => {
-                                            if (err) {
-                                                clearTimeout(timeoutHandler);
-                                                return done(err);
-                                            }
-                                            workerLogger.debug(`Runner '${runnerId}' evaluated`);
-                                        });
-                                        scope.page.evaluate.apply(scope.page, params);
-                                    }, done)
-                                    .catch((err) => {
-                                        clearTimeout(timeoutHandler);
-                                        done(err);
-                                    });
-                                };
-                                nextRunner();
-                            },
-                        ], (err, scope) => {
+                            step.acquireBrowser(scope, workerLogger, pool),
+                            step.createPage(scope, workerLogger),
+                            step.setPageSettings(scope, workerLogger, this.phantomPageSettings, this.followRedirects),
+                            step.openPage(scope, workerLogger, addUrl, this.followRedirects, this.redirectFilter),
+                            step.findLinks(scope, workerLogger, getFinder(this), getFinderParameters(this), addUrl, this.timeout),
+                            step.pageRunners(scope, workerLogger, getRunners(this), workerLogPrefix, this.timeout),
+                        ], (err) => {
                             if (err) {
                                 workerLogger.error(err);
-                                task.result.error = err;
-                            }
-                            if (shouldStream) {
-                                stream.write([task.url, task.result]);
+                                scope.result.error = err;
                             }
 
                             if (scope.page) {
@@ -704,24 +384,26 @@ class CrawlKit {
                                     pool.release(scope.browser);
                                 }
                             }
-                            if (err instanceof HeadlessError && task.tries < self.retries) {
-                                info(`Retrying ${task.url} - adding back to queue`);
-                                delete task.result.error;
-                                q.unshift(task);
-                            }
                             stopWorkerTimer();
+                            if (err instanceof HeadlessError && scope.tries < this.retries) {
+                                logger.info(`Retrying ${scope.url} - adding back to queue`);
+                                delete scope.result.error;
+                                q.unshift(scope);
+                                return workerFinished();
+                            }
+                            if (shouldStream) {
+                                stream.write([scope.url, scope.result]);
+                            }
                             workerFinished(err);
                         });
                     }, '', 'm', (workerRuntime) => {
                         workerLogger.info('Finished. Took %sms.', workerRuntime);
                     });
-                }, self.concurrency);
+                }, this.concurrency);
 
                 q.drain = () => {
                     stopCrawlTimer();
-                    pool.drain(function drainPool() {
-                        pool.destroyAllNow();
-                    });
+                    pool.drain(() => pool.destroyAllNow());
                     if (shouldStream) {
                         stream.end();
                         resolve();
@@ -740,7 +422,7 @@ class CrawlKit {
                     url = url.toString();
 
                     if (!seen.has(url)) {
-                        info(`Adding ${url}`);
+                        logger.info(`Adding ${url}`);
                         const result = {};
                         // don't keep result in memory if we stream
                         seen.set(url, shouldStream ? null : result);
@@ -751,18 +433,18 @@ class CrawlKit {
                             id: new Chance().name(),
                         });
                     } else {
-                        debug(`Skipping ${url} - already seen.`);
+                       logger.debug(`Skipping ${url} - already seen.`);
                     }
                 };
 
-                addUrl(self.url);
+                addUrl(this.url);
             }, '', 's', (time) => {
-              info(`Finished. Processed ${seen.size} discovered URLs. Took ${time}s.`);
+                logger.info(`Finished. Processed ${seen.size} discovered URLs. Took ${time}s.`);
             });
         });
         if (shouldStream) {
             promise.catch((err) => {
-                error(err);
+                logger.error(err);
                 throw err;
             });
             return stream;

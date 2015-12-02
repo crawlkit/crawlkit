@@ -1,12 +1,12 @@
-module.exports = (scope, pool, logger) => {
+module.exports = (scope, logger, pool) => {
     return (done) => {
         pool.acquire((err, browser) => {
             scope.browser = browser;
             if (err) {
-                return done(err, scope);
+                return done(err);
             }
             logger.debug(`Acquired phantom from pool.`);
-            done(null, scope);
+            done();
         });
     };
 };
