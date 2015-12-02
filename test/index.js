@@ -207,7 +207,7 @@ describe('CrawlKit', function main() {
 
                 const results = {};
                 results[`${url}/`] = {
-                    error: 'Finder timed out after 1000ms.',
+                    error: new Error('callback timeout'),
                 };
                 crawler.timeout = 1000;
                 crawler.setFinder({ getRunnable: () => function neverReturningFilter() {} });
@@ -524,7 +524,7 @@ describe('CrawlKit', function main() {
             results[`${url}/`] = {
                 runners: {
                     x: {
-                        error: `Timed out after 1000ms.`,
+                        error: new Error('callback timeout'),
                     },
                 },
             };
@@ -553,13 +553,13 @@ describe('CrawlKit', function main() {
             results[`${url}/`] = {
                 runners: {
                     x: {
-                        error: `Timed out after 1000ms.`,
+                        error: new Error('callback timeout'),
                     },
                     y: {
                         result: 'success',
                     },
                     z: {
-                        error: `Timed out after 1000ms.`,
+                        error: new Error('callback timeout'),
                     },
                 },
             };
