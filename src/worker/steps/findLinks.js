@@ -66,7 +66,6 @@ module.exports = (scope, workerLogger, finder, finderParameters, addUrl, timeout
         const params = [getFinderRunnable(finder)].concat(finderParameters || []);
         params.push((err) => {
             if (err) {
-                clearTimeout(timeoutHandler);
                 return done(err);
             }
             workerLogger.debug(`Finder code evaluated`);
