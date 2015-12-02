@@ -1,6 +1,7 @@
 'use strict'; // eslint-disable-line
 const path = require('path');
 const once = require('once');
+const timeoutCallback = require('timeout-callback');
 const isPhantomError = require(path.join(__dirname, '..', '..', 'isPhantomError.js'));
 const applyUrlFilterFn = require(path.join(__dirname, '..', '..', 'applyUrlFilterFn.js'));
 
@@ -21,14 +22,17 @@ module.exports = (scope, workerLogger, finder, finderParameters, addUrl, timeout
             return cb();
         }
 
-        let timeoutHandler;
-        const done = once((err) => {
-            clearTimeout(timeoutHandler);
+        const done = timeoutCallback(timeout, once((err) => {
+            done.called = true;
             cb(err);
-        });
+        }));
         function phantomCallback(err, urls) {
+            if (done.called) {
+                return;
+            }
             if (err) {
-                return done(err);
+                done(err);
+                return;
             }
             if (urls instanceof Array) {
                 workerLogger.info(`Finder discovered ${urls.length} URLs.`);
@@ -60,9 +64,6 @@ module.exports = (scope, workerLogger, finder, finderParameters, addUrl, timeout
                 workerLogger.debug(`Page: "${err}" in ${JSON.stringify(trace)}`);
             }
         };
-        timeoutHandler = setTimeout(() => {
-            phantomCallback(`Finder timed out after ${timeout}ms.`, null);
-        }, timeout);
         const params = [getFinderRunnable(finder)].concat(finderParameters || []);
         params.push((err) => {
             if (err) {

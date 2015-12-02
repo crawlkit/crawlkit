@@ -3,6 +3,7 @@
 const debug = require('debug');
 const once = require('once');
 const path = require('path');
+const timeoutCallback = require('timeout-callback');
 const isPhantomError = require(path.join(__dirname, '..', '..', 'isPhantomError.js'));
 const HeadlessError = require('node-phantom-simple/headless_error');
 
@@ -13,17 +14,20 @@ module.exports = (scope, workerLogger, runners, workerLogPrefix, timeout) => {
             return cb();
         }
 
-        let timeoutHandler;
         const done = once((err) => {
-            clearTimeout(timeoutHandler);
+            done.called = true;
             cb(err);
         });
         const runnerIterator = runners[Symbol.iterator]();
         const results = scope.result.runners = {};
         const nextRunner = () => {
+            if (done.called) {
+                return;
+            }
             const next = runnerIterator.next();
             if (next.done) {
-                return done();
+                done();
+                return;
             }
 
             const runnerId = next.value[0];
@@ -33,8 +37,16 @@ module.exports = (scope, workerLogger, runners, workerLogPrefix, timeout) => {
             const runnerDebug = debug(`${runnerLogPrefix}:debug`);
             const runnerError = debug(`${runnerLogPrefix}:error`);
 
-            function doneAndNext(err, result) {
-                clearTimeout(timeoutHandler);
+            const doneAndNext = timeoutCallback(timeout, once((res) => {
+                let err;
+                let result;
+
+                if (res instanceof Array) {
+                    err = res.shift();
+                    result = res.shift();
+                } else {
+                    err = res;
+                }
                 results[runnerId] = {};
                 if (err) {
                     results[runnerId].error = err;
@@ -44,7 +56,7 @@ module.exports = (scope, workerLogger, runners, workerLogPrefix, timeout) => {
                     runnerInfo(`Finished.`);
                 }
                 nextRunner();
-            }
+            }));
             const runnerObj = next.value[1];
             const runner = runnerObj.runner;
             const parameters = runnerObj.parameters;
@@ -79,9 +91,6 @@ module.exports = (scope, workerLogger, runners, workerLogPrefix, timeout) => {
                 };
                 scope.page.onConsoleMessage = runnerConsole;
                 runnerInfo(`Started.`);
-                timeoutHandler = setTimeout(() => {
-                    doneAndNext(`Timed out after ${timeout}ms.`, null);
-                }, timeout);
                 const params = [runner.getRunnable()].concat(parameters);
                 params.push((err) => {
                     if (err) {
