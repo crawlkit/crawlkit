@@ -46,6 +46,7 @@ module.exports = (logger, concurrency, phantomParameters, browserCookies) => {
         destroy: (browser) => {
             browser.exit();
         },
+        refreshIdle: false,
         max: concurrency,
         min: 1,
         log: (message, level) => {
