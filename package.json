@@ -53,7 +53,7 @@
     "chai": "^3.4.1",
     "chai-as-promised": "^5.1.0",
     "eslint": "^1.10.2",
-    "eslint-config-airbnb": "^1.0.2",
+    "eslint-config-airbnb": "^2.0.0",
     "freeport": "^1.0.5",
     "http-auth": "^2.2.8",
     "http-proxy": "^1.12.0",
