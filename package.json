@@ -43,7 +43,7 @@
     "debug": "^2.2.0",
     "generic-pool": "^2.2.1",
     "nanotimer": "^0.3.12",
-    "node-phantom-simple": "^2.2.0",
+    "node-phantom-simple": "baudehlo/node-phantom-simple#b783d8228bd6855281bf772e217498e041c48711",
     "once": "^1.3.3",
     "phantomjs": "^1.9.19",
     "timeout-callback": "0.0.4",
