@@ -102,7 +102,7 @@ describe('CrawlKit', function main() {
             const crawler = new CrawlKit(url);
             const results = {};
             results[`${url}/`] = {};
-            return crawler.crawl().should.eventually.deep.equal({results});
+            return crawler.crawl().should.eventually.deep.equal({ results });
         });
 
         it('should error if no URL was given', () => {
@@ -124,7 +124,7 @@ describe('CrawlKit', function main() {
                 results[`${url}/other.html`] = {};
 
                 crawler.setFinder(new GenericLinkFinder());
-                return crawler.crawl().should.eventually.deep.equal({results});
+                return crawler.crawl().should.eventually.deep.equal({ results });
             });
 
             it('that allows parameters', () => {
@@ -135,7 +135,7 @@ describe('CrawlKit', function main() {
                 results[`${url}/ajax.html`] = {};
 
                 crawler.setFinder(new GenericLinkFinder(), 2000);
-                return crawler.crawl().should.eventually.deep.equal({results});
+                return crawler.crawl().should.eventually.deep.equal({ results });
             });
 
             it('that has an incorrect return value', () => {
@@ -149,7 +149,7 @@ describe('CrawlKit', function main() {
                         window.callPhantom(null, 'notAnArray');
                     },
                 });
-                return crawler.crawl().should.eventually.deep.equal({results});
+                return crawler.crawl().should.eventually.deep.equal({ results });
             });
 
             it(`that doesn't return URLs`, () => {
@@ -169,7 +169,7 @@ describe('CrawlKit', function main() {
                         ]);
                     },
                 });
-                return crawler.crawl().should.eventually.deep.equal({results});
+                return crawler.crawl().should.eventually.deep.equal({ results });
             });
 
             it('that is erroneous', () => {
@@ -184,7 +184,7 @@ describe('CrawlKit', function main() {
                         window.callPhantom('Some arbitrary error', null);
                     },
                 });
-                return crawler.crawl().should.eventually.deep.equal({results});
+                return crawler.crawl().should.eventually.deep.equal({ results });
             });
 
             it('that throws an exception', () => {
@@ -199,7 +199,7 @@ describe('CrawlKit', function main() {
                         throw new Error('Some thrown error');
                     },
                 });
-                return crawler.crawl().should.eventually.deep.equal({results});
+                return crawler.crawl().should.eventually.deep.equal({ results });
             });
 
             it('that never returns', () => {
@@ -211,7 +211,7 @@ describe('CrawlKit', function main() {
                 };
                 crawler.timeout = 200;
                 crawler.setFinder({ getRunnable: () => function neverReturningFilter() {} });
-                return crawler.crawl().should.eventually.deep.equal({results});
+                return crawler.crawl().should.eventually.deep.equal({ results });
             });
 
             it('on a page with errors', () => {
@@ -223,7 +223,7 @@ describe('CrawlKit', function main() {
                 results[`${url}/pageWithError.html`] = {};
                 results[`${url}/deadend.html`] = {};
 
-                return crawler.crawl().should.eventually.deep.equal({results});
+                return crawler.crawl().should.eventually.deep.equal({ results });
             });
         });
 
@@ -272,7 +272,7 @@ describe('CrawlKit', function main() {
                   },
                 });
 
-                return crawler.crawl().should.eventually.deep.equal({results});
+                return crawler.crawl().should.eventually.deep.equal({ results });
             });
 
             it('should handle faulty rewrites', () => {
@@ -286,7 +286,7 @@ describe('CrawlKit', function main() {
                     urlFilter: () => {},
                 });
 
-                return crawler.crawl().should.eventually.deep.equal({results});
+                return crawler.crawl().should.eventually.deep.equal({ results });
             });
 
             it('should be called with the scope where it came from', () => {
@@ -311,7 +311,7 @@ describe('CrawlKit', function main() {
 
                 crawler.setFinder(new HiddenFinder(`${url}/hidden.html`));
 
-                return crawler.crawl().should.eventually.deep.equal({results});
+                return crawler.crawl().should.eventually.deep.equal({ results });
             });
         });
     });
@@ -333,7 +333,7 @@ describe('CrawlKit', function main() {
             error: `Failed to open ${url}/404.html`,
         };
         crawler.setFinder(new GenericLinkFinder());
-        return crawler.crawl().should.eventually.deep.equal({results});
+        return crawler.crawl().should.eventually.deep.equal({ results });
     });
 
     describe('runners', () => {
@@ -360,7 +360,7 @@ describe('CrawlKit', function main() {
                     },
                 },
             };
-            return crawler.crawl().should.eventually.deep.equal({results});
+            return crawler.crawl().should.eventually.deep.equal({ results });
         });
 
         it('should be able to run async', () => {
@@ -375,7 +375,7 @@ describe('CrawlKit', function main() {
                     },
                 },
             };
-            return crawler.crawl().should.eventually.deep.equal({results});
+            return crawler.crawl().should.eventually.deep.equal({ results });
         });
 
         describe('errors', () => {
@@ -392,7 +392,7 @@ describe('CrawlKit', function main() {
                         },
                     },
                 };
-                return crawler.crawl().should.eventually.deep.equal({results});
+                return crawler.crawl().should.eventually.deep.equal({ results });
             });
 
             it('should die on runner errors', () => {
@@ -408,7 +408,7 @@ describe('CrawlKit', function main() {
                         },
                     },
                 };
-                return crawler.crawl().should.eventually.deep.equal({results});
+                return crawler.crawl().should.eventually.deep.equal({ results });
             });
         });
 
@@ -442,7 +442,7 @@ describe('CrawlKit', function main() {
                         },
                     },
                 };
-                return crawler.crawl().should.eventually.deep.equal({results});
+                return crawler.crawl().should.eventually.deep.equal({ results });
             });
 
             it('async with a Promise', () => {
@@ -467,7 +467,7 @@ describe('CrawlKit', function main() {
                         },
                     },
                 };
-                return crawler.crawl().should.eventually.deep.equal({results});
+                return crawler.crawl().should.eventually.deep.equal({ results });
             });
 
             it('should work on a broken website', () => {
@@ -483,7 +483,7 @@ describe('CrawlKit', function main() {
                         },
                     },
                 };
-                return crawler.crawl().should.eventually.deep.equal({results});
+                return crawler.crawl().should.eventually.deep.equal({ results });
             });
 
             it('should recover from unavailable companion files', () => {
@@ -508,7 +508,7 @@ describe('CrawlKit', function main() {
                         },
                     },
                 };
-                return crawler.crawl().should.eventually.deep.equal({results});
+                return crawler.crawl().should.eventually.deep.equal({ results });
             });
         });
 
@@ -528,7 +528,7 @@ describe('CrawlKit', function main() {
                     },
                 },
             };
-            return crawler.crawl().should.eventually.deep.equal({results});
+            return crawler.crawl().should.eventually.deep.equal({ results });
         });
 
         it('should be able to time out (multiple)', () => {
@@ -563,7 +563,7 @@ describe('CrawlKit', function main() {
                     },
                 },
             };
-            return crawler.crawl().should.eventually.deep.equal({results});
+            return crawler.crawl().should.eventually.deep.equal({ results });
         });
 
         describe('Parameters', () => {
@@ -586,7 +586,7 @@ describe('CrawlKit', function main() {
                         },
                     },
                 };
-                return crawler.crawl().should.eventually.deep.equal({results});
+                return crawler.crawl().should.eventually.deep.equal({ results });
             });
 
             it('should accept multiple parameters', () => {
@@ -608,7 +608,7 @@ describe('CrawlKit', function main() {
                         },
                     },
                 };
-                return crawler.crawl().should.eventually.deep.equal({results});
+                return crawler.crawl().should.eventually.deep.equal({ results });
             });
 
             it('should default missing parameters to undefined', () => {
@@ -630,7 +630,7 @@ describe('CrawlKit', function main() {
                         },
                     },
                 };
-                return crawler.crawl().should.eventually.deep.equal({results});
+                return crawler.crawl().should.eventually.deep.equal({ results });
             });
         });
     });
@@ -646,7 +646,7 @@ describe('CrawlKit', function main() {
             const results = {};
             results[`${url}/redirect.html`] = {};
             results[`${url}/redirect.from.html`] = {};
-            return crawler.crawl().should.eventually.deep.equal({results});
+            return crawler.crawl().should.eventually.deep.equal({ results });
         });
 
         it('should be followed when the according setting is enabled', () => {
@@ -659,7 +659,7 @@ describe('CrawlKit', function main() {
                 error: `page for ${redirectUrl} redirected to ${targetUrl}`,
             };
             results[targetUrl] = {};
-            return crawler.crawl().should.eventually.deep.equal({results});
+            return crawler.crawl().should.eventually.deep.equal({ results });
         });
 
         it('should be checked against the redirectFilter if available', () => {
@@ -676,7 +676,7 @@ describe('CrawlKit', function main() {
                 crawler.redirectFilter.should.have.been.calledOnce;
                 crawler.redirectFilter.should.have.been.calledWith('http://www.google.com/', externalRedirectUrl);
                 return data;
-            }).should.eventually.deep.equal({results});
+            }).should.eventually.deep.equal({ results });
         });
     });
 
@@ -708,7 +708,7 @@ describe('CrawlKit', function main() {
                   },
               },
           };
-          return crawler.crawl().should.eventually.deep.equal({results});
+          return crawler.crawl().should.eventually.deep.equal({ results });
         });
     });
 
@@ -735,7 +735,7 @@ describe('CrawlKit', function main() {
                     },
                 },
             };
-            return crawler.crawl().should.eventually.deep.equal({results});
+            return crawler.crawl().should.eventually.deep.equal({ results });
         });
 
 
@@ -752,7 +752,7 @@ describe('CrawlKit', function main() {
             results[`${proxyUrl}/other.html`] = {};
 
             crawler.setFinder(new GenericLinkFinder());
-            return crawler.crawl().should.eventually.deep.equal({results});
+            return crawler.crawl().should.eventually.deep.equal({ results });
         });
     });
 
@@ -787,7 +787,7 @@ describe('CrawlKit', function main() {
             return crawler.crawl().then((result) => {
                 flakyRunnable.should.have.been.calledThrice;
                 return result;
-            }).should.eventually.deep.equal({results});
+            }).should.eventually.deep.equal({ results });
         });
 
         describe('should only try every so often', () => {
@@ -821,7 +821,7 @@ describe('CrawlKit', function main() {
                 return crawler.crawl().then((result) => {
                     flakyRunnable.should.have.been.calledThrice;
                     return result;
-                }).should.eventually.deep.equal({results});
+                }).should.eventually.deep.equal({ results });
             });
 
             it('or how many times defined', () => {
@@ -830,7 +830,7 @@ describe('CrawlKit', function main() {
                 return crawler.crawl().then((result) => {
                     flakyRunnable.should.have.been.calledTwice;
                     return result;
-                }).should.eventually.deep.equal({results});
+                }).should.eventually.deep.equal({ results });
             });
         });
     });
@@ -851,9 +851,9 @@ describe('CrawlKit', function main() {
             });
 
             const results = {};
-            results[`${url}/`] = {runners: {agent: {result: 'X'}}};
-            results[`${url}/#somehash`] = {runners: {agent: {result: 'X'}}};
-            results[`${url}/other.html`] = {runners: {agent: {result: 'X'}}};
+            results[`${url}/`] = { runners: { agent: { result: 'X' } } };
+            results[`${url}/#somehash`] = { runners: { agent: { result: 'X' } } };
+            results[`${url}/other.html`] = { runners: { agent: { result: 'X' } } };
             const stream = crawler.crawl(true);
 
             let streamed = '';
