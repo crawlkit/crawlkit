@@ -36,6 +36,8 @@ module.exports = (scope, logger, runners, workerLogPrefix, timeout) => {
             }
 
             const runnerId = next.value[0];
+            const runnerObj = next.value[1];
+
             const runnerLogPrefix = `${workerLogPrefix}:runner(${runnerId})`;
             const runnerLogger = {
                 console: debug(`${runnerLogPrefix}:console:debug`),
@@ -66,7 +68,7 @@ module.exports = (scope, logger, runners, workerLogPrefix, timeout) => {
                 logger.debug('On to next runner.');
                 nextRunner();
             }));
-            const runnerObj = next.value[1];
+
             const runner = runnerObj.runner;
             const parameters = runnerObj.parameters;
 
