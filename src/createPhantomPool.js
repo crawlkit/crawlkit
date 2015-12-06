@@ -52,7 +52,6 @@ module.exports = (logger, concurrency, phantomParameters, browserCookies) => {
             browser.exit();
             logger.debug('PhantomJS instance destroyed.');
         },
-        refreshIdle: false,
         max: concurrency,
         min: 1,
         log: (message, level) => {
