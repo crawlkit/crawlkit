@@ -1,5 +1,6 @@
 module.exports = (scope, logger, phantomPageSettings, followRedirects) => {
     return (done) => {
+        logger.debug('Setting page settings');
         const settingsToSet = Object.assign({}, phantomPageSettings);
         if (!followRedirects) {
             // TODO: fix - enabling the next line currently stalls PhantomJS
@@ -21,6 +22,9 @@ module.exports = (scope, logger, phantomPageSettings, followRedirects) => {
                     success();
                 });
             });
-        })).then(() => done(), done);
+        })).then(() => {
+            logger.debug('All page settings set');
+            done();
+        }, done);
     };
 };

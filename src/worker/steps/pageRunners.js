@@ -7,14 +7,17 @@ const timeoutCallback = require('timeout-callback');
 const isPhantomError = require(path.join(__dirname, '..', '..', 'isPhantomError.js'));
 const HeadlessError = require('node-phantom-simple/headless_error');
 
-module.exports = (scope, workerLogger, runners, workerLogPrefix, timeout) => {
+module.exports = (scope, logger, runners, workerLogPrefix, timeout) => {
     return (cb) => {
+        logger.debug('Trying to run page runners.');
+
         if (runners.size === 0) {
-            workerLogger.debug('No runners defined');
+            logger.debug('No runners defined');
             return cb();
         }
 
         const done = once((err) => {
+            logger.debug('Runners finished.');
             done.called = true;
             cb(err);
         });
@@ -22,22 +25,29 @@ module.exports = (scope, workerLogger, runners, workerLogPrefix, timeout) => {
         const results = scope.result.runners = {};
         const nextRunner = () => {
             if (done.called) {
+                logger.debug('Callback was called already.');
                 return;
             }
             const next = runnerIterator.next();
             if (next.done) {
+                logger.debug('All runners ran.');
                 done();
                 return;
             }
 
             const runnerId = next.value[0];
+            const runnerObj = next.value[1];
+
             const runnerLogPrefix = `${workerLogPrefix}:runner(${runnerId})`;
-            const runnerConsole = debug(`${runnerLogPrefix}:console:debug`);
-            const runnerInfo = debug(`${runnerLogPrefix}:info`);
-            const runnerDebug = debug(`${runnerLogPrefix}:debug`);
-            const runnerError = debug(`${runnerLogPrefix}:error`);
+            const runnerLogger = {
+                console: debug(`${runnerLogPrefix}:console:debug`),
+                info: debug(`${runnerLogPrefix}:info`),
+                debug: debug(`${runnerLogPrefix}:debug`),
+                error: debug(`${runnerLogPrefix}:error`),
+            };
 
             const doneAndNext = timeoutCallback(timeout, once((res) => {
+                logger.debug(`Runner '${runnerId}' finished.`);
                 let err;
                 let result;
 
@@ -50,14 +60,15 @@ module.exports = (scope, workerLogger, runners, workerLogPrefix, timeout) => {
                 results[runnerId] = {};
                 if (err) {
                     results[runnerId].error = err;
-                    runnerError(err);
+                    runnerLogger.error(err);
                 } else {
                     results[runnerId].result = result;
-                    runnerInfo(`Finished.`);
+                    runnerLogger.info(`Finished.`);
                 }
+                logger.debug('On to next runner.');
                 nextRunner();
             }));
-            const runnerObj = next.value[1];
+
             const runner = runnerObj.runner;
             const parameters = runnerObj.parameters;
 
@@ -67,14 +78,14 @@ module.exports = (scope, workerLogger, runners, workerLogPrefix, timeout) => {
                     return new Promise((injected, reject) => {
                         scope.page.injectJs(filename, (err, result) => {
                             if (err) {
-                                runnerError(err);
+                                runnerLogger.error(err);
                                 return reject(err);
                             }
                             if (!result) {
-                                runnerError(`Failed to inject companion file '${filename}' on ${scope.url}`);
+                                runnerLogger.error(`Failed to inject companion file '${filename}' on ${scope.url}`);
                                 return reject(`Failed to inject companion file '${filename}'`);
                             }
-                            runnerDebug(`Injected companion file '${filename}' on ${scope.url}`);
+                            runnerLogger.debug(`Injected companion file '${filename}' on ${scope.url}`);
                             injected();
                         });
                     });
@@ -86,23 +97,25 @@ module.exports = (scope, workerLogger, runners, workerLogPrefix, timeout) => {
                     if (isPhantomError(trace)) {
                         doneAndNext(err);
                     } else {
-                        runnerDebug(`Page: "${err}" in ${JSON.stringify(trace)}`);
+                        runnerLogger.debug(`Page: "${err}" in ${JSON.stringify(trace)}`);
                     }
                 };
-                scope.page.onConsoleMessage = runnerConsole;
-                runnerInfo(`Started.`);
+                scope.page.onConsoleMessage = runnerLogger.console;
+                runnerLogger.info(`Started.`);
                 const params = [runner.getRunnable()].concat(parameters);
                 params.push((err) => {
                     if (err) {
-                        return done(err);
+                        return doneAndNext(err);
                     }
-                    workerLogger.debug(`Runner '${runnerId}' evaluated`);
+                    logger.debug(`Runner '${runnerId}' evaluated`);
                 });
-                workerLogger.debug(`Trying to evaluate runner '${runnerId}'`);
+                logger.debug(`Trying to evaluate runner '${runnerId}'`);
                 scope.page.evaluate.apply(scope.page, params);
             }, doneAndNext)
             .catch((err) => {
+                runnerLogger.debug('Runner caught an error');
                 if (err instanceof HeadlessError) {
+                    runnerLogger.debug('Phantom died during run.');
                     done(err);
                 } else {
                     doneAndNext(err);
