@@ -7,6 +7,7 @@ const once = require('once');
 
 module.exports = (scope, logger, addUrl, followRedirects, redirectFilter) => {
     return (cb) => {
+        logger.debug('Opening page.');
         const done = once(cb);
         scope.page.onNavigationRequested = (redirectedToUrl, type, willNavigate, mainFrame) => {
             if (urijs(scope.url).equals(redirectedToUrl)) {

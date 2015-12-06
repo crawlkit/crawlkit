@@ -14,13 +14,16 @@ module.exports = (logger, concurrency, phantomParameters, browserCookies) => {
         create: (callback) => {
             async.waterfall([
                 function createPhantom(done) {
+                    logger.debug('Creating PhantomJS instance');
                     driver.create({
                         path: phantomjs.path,
                         parameters: phantomParameters,
                     }, done);
                 },
                 function addCookies(browser, done) {
+                    logger.debug('Adding cookies.');
                     if (browserCookies.length === 0) {
+                        logger.debug('No cookies to add.');
                         return done(null, browser);
                     }
                     Promise.all(browserCookies.map((cookie) => {
@@ -38,13 +41,16 @@ module.exports = (logger, concurrency, phantomParameters, browserCookies) => {
                         logger.debug(`finished adding cookies`);
                         done(null, browser);
                     }, (cookieErr) => {
+                        logger.debug('Error adding cookies.');
                         done(cookieErr, browser);
                     });
                 },
             ], callback);
         },
         destroy: (browser) => {
+            logger.debug('Destroying PhantomJS instance.');
             browser.exit();
+            logger.debug('PhantomJS instance destroyed.');
         },
         refreshIdle: false,
         max: concurrency,

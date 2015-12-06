@@ -376,7 +376,7 @@ class CrawlKit {
                             if (scope.browser) {
                                 if (err && (err instanceof HeadlessError)) {
                                     // take no chances - if there was an error on Phantom side, we should get rid of the instance
-                                    workerLogger.info(`Phantom instance destroyed.`);
+                                    workerLogger.info(`Attempting to detroy Phantom instance.`);
                                     pool.destroy(scope.browser);
                                     scope.browser = null;
                                 } else {
