@@ -105,7 +105,7 @@ module.exports = (scope, logger, runners, workerLogPrefix, timeout) => {
                 const params = [runner.getRunnable()].concat(parameters);
                 params.push((err) => {
                     if (err) {
-                        return done(err);
+                        return doneAndNext(err);
                     }
                     logger.debug(`Runner '${runnerId}' evaluated`);
                 });
