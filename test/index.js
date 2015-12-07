@@ -904,7 +904,7 @@ describe('CrawlKit', function main() {
             });
 
             it('or how many times defined', () => {
-                crawler.retries = 2;
+                crawler.tries = 2;
 
                 return crawler.crawl().then((result) => {
                     flakyRunnable.should.have.been.calledTwice;

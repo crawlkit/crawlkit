@@ -38,7 +38,7 @@ const phantomParamsKey = Symbol();
 const phantomPageSettingsKey = Symbol();
 const followRedirectsKey = Symbol();
 const browserCookiesKey = Symbol();
-const retriesKey = Symbol();
+const triesKey = Symbol();
 const redirectFilterKey = Symbol();
 
 /**
@@ -177,7 +177,8 @@ class CrawlKit {
     }
 
     /**
-    * Getter/setter for the number of retries when a PhantomJS instance crashes on a page.
+    * Getter/setter for the number of tries when a PhantomJS instance crashes on a page
+    * or {@link CrawlKit#timeout} is hit.
     * When a PhantomJS instance crashes whilst crawling a webpage, this instance is shutdown
     * and replaced by a new one. By default the webpage that failed in such a way will be
     * re-queued. This member controls how often that re-queueing happens.
@@ -185,24 +186,24 @@ class CrawlKit {
     * Values under zero are set to zero.
     *
     * @type {!integer}
-    * @default 3 (try 2 more times after the first failure)
+    * @default 3 (read: try two more times after the first failure, three times in total)
     */
-    set retries(n) {
-        this[retriesKey] = parseInt(n, 10);
+    set tries(n) {
+        this[triesKey] = parseInt(n, 10);
     }
 
     /**
     * @ignore
     */
-    get retries() {
-        return Math.max(0, this[retriesKey] || 3);
+    get tries() {
+        return Math.max(0, this[triesKey] || 3);
     }
 
     /**
     * Allows you to add a runner that is executed on each crawled page.
     * The returned value of the runner is added to the overall result.
     * Runners run sequentially on each webpage in the order they were added.
-    * If a runner is crashing PhantomJS more than {@link CrawlKit#retries} times, subsequent {@link Runner}s are not executed.
+    * If a runner is crashing PhantomJS more than {@link CrawlKit#tries} times, subsequent {@link Runner}s are not executed.
     *
     * @see For an example see `examples/simple.js`. For an example using parameters, see `examples/advanced.js`.
     * @param {!String} key The runner identificator. This is also used in the result stream/object.
@@ -380,7 +381,7 @@ class CrawlKit {
                             }
                             stopWorkerTimer();
                             if (err instanceof HeadlessError) {
-                                if (scope.tries < this.retries) {
+                                if (scope.tries < this.tries) {
                                     logger.info(`Retrying ${scope.url} - adding back to queue.`);
                                     delete scope.result.error;
                                     q.unshift(scope);
