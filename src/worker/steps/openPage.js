@@ -37,11 +37,10 @@ module.exports = (scope, logger, addUrl, followRedirects, redirectFilter) => {
         };
 
         scope.page.open(scope.url, (err, status) => {
-            if (err) {
-                return done(err);
-            }
-            if (status === 'fail') {
-                return done(`Failed to open ${scope.url}`);
+            if (err || status !== 'success') {
+                logger.error('Something went wrong when opening the page');
+                done(err || `Failed to open ${scope.url}`);
+                return;
             }
             logger.debug(`Page opened`);
             done();
