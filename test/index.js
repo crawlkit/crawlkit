@@ -91,8 +91,8 @@ describe('CrawlKit', function main() {
 
     after((done) => {
         proxy.close(() => {
-          server.close();
-          done();
+            server.close();
+            done();
         });
     });
 
@@ -236,10 +236,10 @@ describe('CrawlKit', function main() {
                 results[`${url}/other.html`] = {};
 
                 const spy = sinon.spy((u) => {
-                  if (u.indexOf('somehash') !== -1) {
-                      return false;
-                  }
-                  return u;
+                    if (u.indexOf('somehash') !== -1) {
+                        return false;
+                    }
+                    return u;
                 });
 
                 crawler.setFinder({
@@ -265,11 +265,11 @@ describe('CrawlKit', function main() {
                 crawler.setFinder({
                     getRunnable: () => genericLinkFinder,
                     urlFilter: (u) => {
-                      if (u.indexOf('somehash') !== -1) {
-                          return 'hidden.html';
-                      }
-                      return u;
-                  },
+                        if (u.indexOf('somehash') !== -1) {
+                            return 'hidden.html';
+                        }
+                        return u;
+                    },
                 });
 
                 return crawler.crawl().should.eventually.deep.equal({ results });
@@ -682,33 +682,33 @@ describe('CrawlKit', function main() {
 
     describe('cookies', () => {
         it('should be added to the page if given', () => {
-          const crawler = new CrawlKit(url);
+            const crawler = new CrawlKit(url);
 
-          crawler.browserCookies = [{
-              name: 'cookie',
-              value: 'monster',
-              path: '/',
-              domain: host,
-          }];
+            crawler.browserCookies = [{
+                name: 'cookie',
+                value: 'monster',
+                path: '/',
+                domain: host,
+            }];
 
-          crawler.addRunner('cookies', {
-              getCompanionFiles: () => [],
-              getRunnable: () => {
-                return function getCookies() {
-                    window.callPhantom(null, document.cookie);
-                };
-              },
-          });
+            crawler.addRunner('cookies', {
+                getCompanionFiles: () => [],
+                getRunnable: () => {
+                    return function getCookies() {
+                        window.callPhantom(null, document.cookie);
+                    };
+                },
+            });
 
-          const results = {};
-          results[`${url}/`] = {
-              runners: {
-                  cookies: {
-                      result: 'cookie=monster',
-                  },
-              },
-          };
-          return crawler.crawl().should.eventually.deep.equal({ results });
+            const results = {};
+            results[`${url}/`] = {
+                runners: {
+                    cookies: {
+                        result: 'cookie=monster',
+                    },
+                },
+            };
+            return crawler.crawl().should.eventually.deep.equal({ results });
         });
     });
 

@@ -217,8 +217,8 @@ class CrawlKit {
         const parameters = Array.prototype.slice.call(arguments, 2);
 
         this[runnerKey].set(key, {
-          runner,
-          parameters,
+            runner,
+            parameters,
         });
     }
 
@@ -267,14 +267,14 @@ class CrawlKit {
     * @default false
     */
     set followRedirects(value) {
-      this[followRedirectsKey] = !!value;
+        this[followRedirectsKey] = !!value;
     }
 
     /**
     * @ignore
     */
     get followRedirects() {
-      return this[followRedirectsKey] || false;
+        return this[followRedirectsKey] || false;
     }
 
     /**
@@ -284,17 +284,17 @@ class CrawlKit {
     * @type {!Array.<Object>}
     */
     set browserCookies(cookies) {
-      if (!(cookies instanceof Array)) {
-          throw new Error('Not properly munchable');
-      }
-      this[browserCookiesKey] = cookies;
+        if (!(cookies instanceof Array)) {
+            throw new Error('Not properly munchable');
+        }
+        this[browserCookiesKey] = cookies;
     }
 
     /**
     * @ignore
     */
     get browserCookies() {
-      return this[browserCookiesKey];
+        return this[browserCookiesKey];
     }
 
     /**
@@ -337,10 +337,10 @@ class CrawlKit {
         const pool = createPhantomPool(logger, this.concurrency, this.phantomParameters, this.browserCookies);
 
         const promise = new Promise((resolve) => {
-          if (!this.url) {
-              throw new Error(`Defined url '${this.url}' is not valid.`);
-          }
-          const seen = new Map();
+            if (!this.url) {
+                throw new Error(`Defined url '${this.url}' is not valid.`);
+            }
+            const seen = new Map();
             crawlTimer.time((stopCrawlTimer) => {
                 let addUrl;
                 const q = async.queue((scope, workerFinished) => {
@@ -433,7 +433,7 @@ class CrawlKit {
                             id: new Chance().name(),
                         });
                     } else {
-                       logger.debug(`Skipping ${url} - already seen.`);
+                        logger.debug(`Skipping ${url} - already seen.`);
                     }
                 };
 

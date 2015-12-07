@@ -27,16 +27,16 @@ module.exports = (logger, concurrency, phantomParameters, browserCookies) => {
                         return done(null, browser);
                     }
                     Promise.all(browserCookies.map((cookie) => {
-                      return new Promise((success, reject) => {
-                          logger.debug(`adding cookie '${cookie.name}=${cookie.value}'`);
-                          browser.addCookie(cookie, (cookieErr) => {
-                              if (cookieErr) {
-                                  logger.error(`adding cookie '${cookie.name}' failed`);
-                                  return reject(cookieErr);
-                              }
-                              success();
-                          });
-                      });
+                        return new Promise((success, reject) => {
+                            logger.debug(`adding cookie '${cookie.name}=${cookie.value}'`);
+                            browser.addCookie(cookie, (cookieErr) => {
+                                if (cookieErr) {
+                                    logger.error(`adding cookie '${cookie.name}' failed`);
+                                    return reject(cookieErr);
+                                }
+                                success();
+                            });
+                        });
                     })).then(() => {
                         logger.debug(`finished adding cookies`);
                         done(null, browser);

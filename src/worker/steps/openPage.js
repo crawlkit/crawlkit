@@ -20,7 +20,7 @@ module.exports = (scope, logger, addUrl, followRedirects, redirectFilter) => {
             if (followRedirects) {
                 if (mainFrame && type === 'Other') {
                     try {
-                    const state = applyUrlFilterFn(redirectFilter, redirectedToUrl, scope.url, addUrl);
+                        const state = applyUrlFilterFn(redirectFilter, redirectedToUrl, scope.url, addUrl);
                         if (state === false) {
                             done(`URL ${redirectedToUrl} was not followed`, scope);
                         } else {
