@@ -256,6 +256,24 @@ describe('CrawlKit', function main() {
                     });
                     return crawler.crawl().should.eventually.deep.equal({ results });
                 });
+
+                it('should try X times in case of timeout', () => {
+                    const crawler = new CrawlKit(url);
+                    crawler.tries = 2;
+
+                    const results = {};
+                    results[`${url}/`] = {
+                        error: new TimeoutError(`Finder timed out after ${Finder.DEFAULT_TIMEOUT}ms.`),
+                    };
+                    const spy = sinon.spy(() => function neverReturningFilter() {});
+                    crawler.setFinder({
+                        getRunnable: spy,
+                    });
+                    return crawler.crawl().then((result) => {
+                        spy.callCount.should.equal(2);
+                        return result.results;
+                    }).should.eventually.deep.equal(results);
+                });
             });
 
             it('on a page with errors', () => {

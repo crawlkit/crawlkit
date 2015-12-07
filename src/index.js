@@ -181,7 +181,10 @@ class CrawlKit {
     * or {@link CrawlKit#timeout} is hit.
     * When a PhantomJS instance crashes whilst crawling a webpage, this instance is shutdown
     * and replaced by a new one. By default the webpage that failed in such a way will be
-    * re-queued. This member controls how often that re-queueing happens.
+    * re-queued.
+    * If the finders and runners did not respond within the defined timeout,
+    * it will be tried to run them again as well.
+    * This member controls how often that re-queueing happens.
     *
     * Values under zero are set to zero.
     *
@@ -380,14 +383,14 @@ class CrawlKit {
                                 }
                             }
                             stopWorkerTimer();
-                            if (err instanceof HeadlessError) {
+                            if (err instanceof HeadlessError || err instanceof TimeoutError) {
                                 if (scope.tries < this.tries) {
                                     logger.info(`Retrying ${scope.url} - adding back to queue.`);
                                     delete scope.result.error;
                                     q.unshift(scope);
                                     return queueItemFinished();
                                 }
-                                logger.info(`${scope.url} crashed ${scope.tries} times. Giving up.`);
+                                logger.info(`Tried to crawl ${scope.url} ${scope.tries} times. Giving up.`);
                             }
                             if (shouldStream) {
                                 stream.write([scope.url, scope.result]);
