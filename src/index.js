@@ -392,7 +392,7 @@ class CrawlKit {
                                 stream.write([scope.url, scope.result]);
                             }
                             queueItemFinished(err);
-                        }), this.timeout);
+                        }), this.timeout, `Worker timed out after ${this.timeout}ms.`);
 
                         async.waterfall([
                             step.acquireBrowser(scope, workerLogger, pool),

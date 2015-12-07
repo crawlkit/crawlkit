@@ -51,6 +51,7 @@ module.exports = (scope, logger, runners, workerLogPrefix) => {
                 error: debug(`${runnerLogPrefix}:error`),
             };
 
+            const timeout = runner.timeout || Runner.DEFAULT_TIMEOUT;
             const doneAndNext = callbackTimeout(once((res) => {
                 logger.debug(`Runner '${runnerId}' finished.`);
                 let err;
@@ -72,7 +73,7 @@ module.exports = (scope, logger, runners, workerLogPrefix) => {
                 }
                 logger.debug('On to next runner.');
                 nextRunner();
-            }), runner.timeout || Runner.DEFAULT_TIMEOUT);
+            }), timeout, `Runner timed out after ${timeout}ms.`);
 
             Promise.resolve(runner.getCompanionFiles())
             .then((companionFiles) => {

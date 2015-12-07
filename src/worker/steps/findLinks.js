@@ -26,11 +26,13 @@ module.exports = (scope, logger, finder, finderParameters, addUrl) => {
             return cb();
         }
 
+        const timeout = finder.timeout || Finder.DEFAULT_TIMEOUT;
         const done = callbackTimeout(once((err) => {
             logger.debug('Finder ran.');
             done.called = true;
             cb(err);
-        }), finder.timeout || Finder.DEFAULT_TIMEOUT);
+        }), timeout, `Finder timed out after ${timeout}ms.`);
+
         function phantomCallback(err, urls) {
             if (done.called) {
                 logger.debug('Callback alread called.');

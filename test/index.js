@@ -124,7 +124,7 @@ describe('CrawlKit', function main() {
             crawler.timeout = 5;
             const results = {};
             results[`${url}/`] = {
-                error: new TimeoutError('timeout of 5ms exceeded for callback anonymous'),
+                error: new TimeoutError('Worker timed out after 5ms.'),
             };
             return crawler.crawl().should.eventually.deep.equal({ results });
         });
@@ -233,7 +233,7 @@ describe('CrawlKit', function main() {
 
                     const results = {};
                     results[`${url}/`] = {
-                        error: new TimeoutError('timeout of 200ms exceeded for callback anonymous'),
+                        error: new TimeoutError('Finder timed out after 200ms.'),
                     };
 
                     crawler.setFinder({
@@ -248,7 +248,7 @@ describe('CrawlKit', function main() {
 
                     const results = {};
                     results[`${url}/`] = {
-                        error: new TimeoutError(`timeout of ${Finder.DEFAULT_TIMEOUT}ms exceeded for callback anonymous`),
+                        error: new TimeoutError(`Finder timed out after ${Finder.DEFAULT_TIMEOUT}ms.`),
                     };
 
                     crawler.setFinder({
@@ -580,7 +580,7 @@ describe('CrawlKit', function main() {
                 results[`${url}/`] = {
                     runners: {
                         x: {
-                            error: new TimeoutError('timeout of 200ms exceeded for callback anonymous'),
+                            error: new TimeoutError('Runner timed out after 200ms.'),
                         },
                     },
                 };
@@ -599,7 +599,7 @@ describe('CrawlKit', function main() {
                 results[`${url}/`] = {
                     runners: {
                         x: {
-                            error: new TimeoutError(`timeout of ${Runner.DEFAULT_TIMEOUT}ms exceeded for callback anonymous`),
+                            error: new TimeoutError(`Runner timed out after ${Runner.DEFAULT_TIMEOUT}ms.`),
                         },
                     },
                 };
@@ -610,19 +610,19 @@ describe('CrawlKit', function main() {
                 const crawler = new CrawlKit(url);
 
                 crawler.addRunner('x', {
-                    timeout: 200,
+                    timeout: 100,
                     getCompanionFiles: () => [],
                     getRunnable: () => function noop() {},
                 });
 
                 crawler.addRunner('y', {
-                    timeout: 200,
+                    timeout: 100,
                     getCompanionFiles: () => [],
                     getRunnable: () => function success() { window.callPhantom(null, 'success'); },
                 });
 
                 crawler.addRunner('z', {
-                    timeout: 200,
+                    timeout: 100,
                     getCompanionFiles: () => [],
                     getRunnable: () => function noop() {},
                 });
@@ -631,13 +631,13 @@ describe('CrawlKit', function main() {
                 results[`${url}/`] = {
                     runners: {
                         x: {
-                            error: new TimeoutError('timeout of 200ms exceeded for callback anonymous'),
+                            error: new TimeoutError('Runner timed out after 100ms.'),
                         },
                         y: {
                             result: 'success',
                         },
                         z: {
-                            error: new TimeoutError('timeout of 200ms exceeded for callback anonymous'),
+                            error: new TimeoutError('Runner timed out after 100ms.'),
                         },
                     },
                 };
