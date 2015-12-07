@@ -1,7 +1,7 @@
 'use strict'; // eslint-disable-line
 const path = require('path');
 const once = require('once');
-const timeoutCallback = require('timeout-callback');
+const callbackTimeout = require('callback-timeout');
 const isPhantomError = require(path.join(__dirname, '..', '..', 'isPhantomError.js'));
 const applyUrlFilterFn = require(path.join(__dirname, '..', '..', 'applyUrlFilterFn.js'));
 
@@ -24,11 +24,11 @@ module.exports = (scope, logger, finder, finderParameters, addUrl, timeout) => {
             return cb();
         }
 
-        const done = timeoutCallback(timeout, once((err) => {
+        const done = callbackTimeout(once((err) => {
             logger.debug('Finder ran.');
             done.called = true;
             cb(err);
-        }));
+        }), timeout);
         function phantomCallback(err, urls) {
             if (done.called) {
                 logger.debug('Callback alread called.');

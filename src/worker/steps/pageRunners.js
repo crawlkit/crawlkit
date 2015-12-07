@@ -3,7 +3,7 @@
 const debug = require('debug');
 const once = require('once');
 const path = require('path');
-const timeoutCallback = require('timeout-callback');
+const callbackTimeout = require('callback-timeout');
 const isPhantomError = require(path.join(__dirname, '..', '..', 'isPhantomError.js'));
 const HeadlessError = require('node-phantom-simple/headless_error');
 
@@ -46,7 +46,7 @@ module.exports = (scope, logger, runners, workerLogPrefix, timeout) => {
                 error: debug(`${runnerLogPrefix}:error`),
             };
 
-            const doneAndNext = timeoutCallback(timeout, once((res) => {
+            const doneAndNext = callbackTimeout(once((res) => {
                 logger.debug(`Runner '${runnerId}' finished.`);
                 let err;
                 let result;
@@ -67,7 +67,7 @@ module.exports = (scope, logger, runners, workerLogPrefix, timeout) => {
                 }
                 logger.debug('On to next runner.');
                 nextRunner();
-            }));
+            }), timeout);
 
             const runner = runnerObj.runner;
             const parameters = runnerObj.parameters;

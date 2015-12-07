@@ -10,6 +10,7 @@ const auth = require('http-auth');
 const http = require('http');
 const httpProxy = require('http-proxy');
 const HeadlessError = require('node-phantom-simple/headless_error');
+const TimeoutError = require('callback-timeout/errors').TimeoutError;
 
 const pkg = require(path.join(__dirname, '..', 'package.json'));
 const CrawlKit = require(path.join(__dirname, '..', pkg.main));
@@ -207,7 +208,7 @@ describe('CrawlKit', function main() {
 
                 const results = {};
                 results[`${url}/`] = {
-                    error: new Error('callback timeout'),
+                    error: new TimeoutError('timeout of 200ms exceeded for callback anonymous'),
                 };
                 crawler.timeout = 200;
                 crawler.setFinder({ getRunnable: () => function neverReturningFilter() {} });
@@ -524,7 +525,7 @@ describe('CrawlKit', function main() {
             results[`${url}/`] = {
                 runners: {
                     x: {
-                        error: new Error('callback timeout'),
+                        error: new TimeoutError('timeout of 200ms exceeded for callback anonymous'),
                     },
                 },
             };
@@ -553,13 +554,13 @@ describe('CrawlKit', function main() {
             results[`${url}/`] = {
                 runners: {
                     x: {
-                        error: new Error('callback timeout'),
+                        error: new TimeoutError('timeout of 200ms exceeded for callback anonymous'),
                     },
                     y: {
                         result: 'success',
                     },
                     z: {
-                        error: new Error('callback timeout'),
+                        error: new TimeoutError('timeout of 200ms exceeded for callback anonymous'),
                     },
                 },
             };
