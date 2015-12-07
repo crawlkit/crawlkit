@@ -1,9 +1,13 @@
+'use strict'; // eslint-disable-line
+
+const Runnable = require('./Runnable.js');
+
 /**
 * A webpage runner blueprint
 *
 * @interface
 */
-class Runner {
+class Runner extends Runnable {
 
     /**
     * A method to get a function from that is evaluated within the web page and returns a result.
@@ -11,14 +15,8 @@ class Runner {
     * The returned function should call back with an result of any serializable kind by calling
     * `window.callPhantom(error, result)`.
     * If your method did not provoke an error, pass null as the first argument.
-    * You can also throw an error from your returned function.
-    * Console output from the returned function can be seen if DEBUG="*:debug" is enabled.
     *
-    * The time out of the returned function is controlled via {@link CrawlKit#timeout}.
-    *
-    * Keep in mind that returned functions run in the webpage (and as such are restricted to browser features).
-    * There are no node features available. Also, closures, etc. won't work.
-    * Write this function as if it was called inside a pretty old WebKit.
+    * The time out of the returned function is controlled via {@link Runner#timeout}.
     *
     * The returned function will be called immediately after page load, any defined {@link Finder} and other {@link Runner}s added before.
     *

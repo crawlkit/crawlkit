@@ -2,8 +2,10 @@
 const path = require('path');
 const once = require('once');
 const callbackTimeout = require('callback-timeout');
-const isPhantomError = require(path.join(__dirname, '..', '..', 'isPhantomError.js'));
-const applyUrlFilterFn = require(path.join(__dirname, '..', '..', 'applyUrlFilterFn.js'));
+const basePath = path.join(__dirname, '..', '..');
+const isPhantomError = require(path.join(basePath, 'isPhantomError.js'));
+const applyUrlFilterFn = require(path.join(basePath, 'applyUrlFilterFn.js'));
+const Finder = require(path.join(basePath, 'Finder.js'));
 
 function getFinderRunnable(finder) {
     if (!finder) {
@@ -16,7 +18,7 @@ function getUrlFilter(finder) {
     return (finder && finder.urlFilter) ? finder.urlFilter.bind(finder) : null;
 }
 
-module.exports = (scope, logger, finder, finderParameters, addUrl, timeout) => {
+module.exports = (scope, logger, finder, finderParameters, addUrl) => {
     return (cb) => {
         logger.debug('Trying to run finder.');
         if (!finder) {
@@ -28,7 +30,7 @@ module.exports = (scope, logger, finder, finderParameters, addUrl, timeout) => {
             logger.debug('Finder ran.');
             done.called = true;
             cb(err);
-        }), timeout);
+        }), finder.timeout || Finder.DEFAULT_TIMEOUT);
         function phantomCallback(err, urls) {
             if (done.called) {
                 logger.debug('Callback alread called.');

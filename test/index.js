@@ -14,6 +14,9 @@ const TimeoutError = require('callback-timeout/errors').TimeoutError;
 
 const pkg = require(path.join(__dirname, '..', 'package.json'));
 const CrawlKit = require(path.join(__dirname, '..', pkg.main));
+const Finder = require(path.join(__dirname, '..', 'src', 'Finder.js'));
+const Runner = require(path.join(__dirname, '..', 'src', 'Runner.js'));
+
 const genericLinkFinder = require('../finders/genericAnchors.js');
 
 chai.should();
@@ -110,9 +113,20 @@ describe('CrawlKit', function main() {
             const crawler = new CrawlKit();
             return crawler.crawl().should.eventually.be.rejected;
         });
+
         it('should error if erroneous URL was given', () => {
             const crawler = new CrawlKit('mailto:bla@bla');
             return crawler.crawl().should.eventually.be.rejected;
+        });
+
+        it('should time out', () => {
+            const crawler = new CrawlKit(url);
+            crawler.timeout = 5;
+            const results = {};
+            results[`${url}/`] = {
+                error: new TimeoutError('timeout of 5ms exceeded for callback anonymous'),
+            };
+            return crawler.crawl().should.eventually.deep.equal({ results });
         });
 
         describe('with a finder', () => {
@@ -203,16 +217,45 @@ describe('CrawlKit', function main() {
                 return crawler.crawl().should.eventually.deep.equal({ results });
             });
 
-            it('that never returns', () => {
-                const crawler = new CrawlKit(url);
+            describe('timeouts', () => {
+                const originalTimeout = Finder.DEFAULT_TIMEOUT;
 
-                const results = {};
-                results[`${url}/`] = {
-                    error: new TimeoutError('timeout of 200ms exceeded for callback anonymous'),
-                };
-                crawler.timeout = 200;
-                crawler.setFinder({ getRunnable: () => function neverReturningFilter() {} });
-                return crawler.crawl().should.eventually.deep.equal({ results });
+                beforeEach(() => {
+                    Finder.DEFAULT_TIMEOUT = 1234;
+                });
+
+                afterEach(() => {
+                    Finder.DEFAULT_TIMEOUT = originalTimeout;
+                });
+
+                it('that never returns (use given timeout)', () => {
+                    const crawler = new CrawlKit(url);
+
+                    const results = {};
+                    results[`${url}/`] = {
+                        error: new TimeoutError('timeout of 200ms exceeded for callback anonymous'),
+                    };
+
+                    crawler.setFinder({
+                        getRunnable: () => function neverReturningFilter() {},
+                        timeout: 200,
+                    });
+                    return crawler.crawl().should.eventually.deep.equal({ results });
+                });
+
+                it('that never returns (use default timeout)', () => {
+                    const crawler = new CrawlKit(url);
+
+                    const results = {};
+                    results[`${url}/`] = {
+                        error: new TimeoutError(`timeout of ${Finder.DEFAULT_TIMEOUT}ms exceeded for callback anonymous`),
+                    };
+
+                    crawler.setFinder({
+                        getRunnable: () => function neverReturningFilter() {},
+                    });
+                    return crawler.crawl().should.eventually.deep.equal({ results });
+                });
             });
 
             it('on a page with errors', () => {
@@ -513,58 +556,93 @@ describe('CrawlKit', function main() {
             });
         });
 
-        it('should be able to time out', () => {
-            const crawler = new CrawlKit(url);
-            crawler.timeout = 200;
-            crawler.addRunner('x', {
-                getCompanionFiles: () => [],
-                getRunnable: () => function noop() {},
+        describe('timeouts', () => {
+            const originalTimeout = Runner.DEFAULT_TIMEOUT;
+
+            beforeEach(() => {
+                Runner.DEFAULT_TIMEOUT = 1234;
             });
 
-            const results = {};
-            results[`${url}/`] = {
-                runners: {
-                    x: {
-                        error: new TimeoutError('timeout of 200ms exceeded for callback anonymous'),
-                    },
-                },
-            };
-            return crawler.crawl().should.eventually.deep.equal({ results });
-        });
-
-        it('should be able to time out (multiple)', () => {
-            const crawler = new CrawlKit(url);
-            crawler.timeout = 200;
-            crawler.addRunner('x', {
-                getCompanionFiles: () => [],
-                getRunnable: () => function noop() {},
+            afterEach(() => {
+                Runner.DEFAULT_TIMEOUT = originalTimeout;
             });
 
-            crawler.addRunner('y', {
-                getCompanionFiles: () => [],
-                getRunnable: () => function success() { window.callPhantom(null, 'success'); },
+            it('given timeout', () => {
+                const crawler = new CrawlKit(url);
+
+                crawler.addRunner('x', {
+                    timeout: 200,
+                    getCompanionFiles: () => [],
+                    getRunnable: () => function noop() {},
+                });
+
+                const results = {};
+                results[`${url}/`] = {
+                    runners: {
+                        x: {
+                            error: new TimeoutError('timeout of 200ms exceeded for callback anonymous'),
+                        },
+                    },
+                };
+                return crawler.crawl().should.eventually.deep.equal({ results });
             });
 
-            crawler.addRunner('z', {
-                getCompanionFiles: () => [],
-                getRunnable: () => function noop() {},
+            it('default timeout', () => {
+                const crawler = new CrawlKit(url);
+
+                crawler.addRunner('x', {
+                    getCompanionFiles: () => [],
+                    getRunnable: () => function noop() {},
+                });
+
+                const results = {};
+                results[`${url}/`] = {
+                    runners: {
+                        x: {
+                            error: new TimeoutError(`timeout of ${Runner.DEFAULT_TIMEOUT}ms exceeded for callback anonymous`),
+                        },
+                    },
+                };
+                return crawler.crawl().should.eventually.deep.equal({ results });
             });
 
-            const results = {};
-            results[`${url}/`] = {
-                runners: {
-                    x: {
-                        error: new TimeoutError('timeout of 200ms exceeded for callback anonymous'),
+            it('multiple', () => {
+                const crawler = new CrawlKit(url);
+
+                crawler.addRunner('x', {
+                    timeout: 200,
+                    getCompanionFiles: () => [],
+                    getRunnable: () => function noop() {},
+                });
+
+                crawler.addRunner('y', {
+                    timeout: 200,
+                    getCompanionFiles: () => [],
+                    getRunnable: () => function success() { window.callPhantom(null, 'success'); },
+                });
+
+                crawler.addRunner('z', {
+                    timeout: 200,
+                    getCompanionFiles: () => [],
+                    getRunnable: () => function noop() {},
+                });
+
+                const results = {};
+                results[`${url}/`] = {
+                    runners: {
+                        x: {
+                            error: new TimeoutError('timeout of 200ms exceeded for callback anonymous'),
+                        },
+                        y: {
+                            result: 'success',
+                        },
+                        z: {
+                            error: new TimeoutError('timeout of 200ms exceeded for callback anonymous'),
+                        },
                     },
-                    y: {
-                        result: 'success',
-                    },
-                    z: {
-                        error: new TimeoutError('timeout of 200ms exceeded for callback anonymous'),
-                    },
-                },
-            };
-            return crawler.crawl().should.eventually.deep.equal({ results });
+                };
+                return crawler.crawl().should.eventually.deep.equal({ results });
+            });
         });
 
         describe('Parameters', () => {

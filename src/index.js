@@ -1,10 +1,13 @@
 'use strict'; // eslint-disable-line
 
 const HeadlessError = require('node-phantom-simple/headless_error');
+const TimeoutError = require('callback-timeout/errors').TimeoutError;
 
 const async = require('async');
 const debug = require('debug');
 const urijs = require('urijs');
+const once = require('once');
+const callbackTimeout = require('callback-timeout');
 
 const NanoTimer = require('nanotimer');
 const Chance = require('chance');
@@ -99,13 +102,13 @@ class CrawlKit {
     }
 
     /**
-    * Getter/setter for the timeout in ms for runners and finder functions.
-    * The timeout starts fresh for each runner.
+    * Getter/setter for overall timeout for one website processing (opening page, evaluating runners and finder functions).
+    * The timeout starts fresh for each website.
     *
     * Values under zero are set to zero.
     *
     * @type {!integer}
-    * @default 10000 (10 seconds)
+    * @default 30000 (30 seconds)
     */
     set timeout(num) {
         this[timeoutKey] = parseInt(num, 10);
@@ -115,7 +118,7 @@ class CrawlKit {
     * @ignore
     */
     get timeout() {
-        return Math.max(0, this[timeoutKey] || 10000);
+        return Math.max(0, this[timeoutKey] || 30000);
     }
 
     /**
@@ -342,7 +345,7 @@ class CrawlKit {
             const seen = new Map();
             new NanoTimer().time((stopCrawlTimer) => {
                 let addUrl;
-                const q = async.queue((scope, workerFinished) => {
+                const q = async.queue((scope, queueItemFinished) => {
                     scope.tries++;
                     const workerLogPrefix = `crawlkit:task(${scope.id})`;
                     const workerLogger = {
@@ -350,19 +353,11 @@ class CrawlKit {
                         info: debug(`${workerLogPrefix}:info`),
                         error: debug(`${workerLogPrefix}:error`),
                     };
-                    const workerTimer = new NanoTimer();
 
                     logger.info(`Worker started - ${q.length()} task(s) left in the queue.`);
                     workerLogger.info(`Took ${scope.url} from queue` + (scope.tries > 1 ? ` (attempt ${scope.tries})` : '') + '.');
-                    workerTimer.time((stopWorkerTimer) => {
-                        async.waterfall([
-                            step.acquireBrowser(scope, workerLogger, pool),
-                            step.createPage(scope, workerLogger),
-                            step.setPageSettings(scope, workerLogger, this.phantomPageSettings, this.followRedirects),
-                            step.openPage(scope, workerLogger, addUrl, this.followRedirects, this.redirectFilter),
-                            step.findLinks(scope, workerLogger, getFinder(this), getFinderParameters(this), addUrl, this.timeout),
-                            step.pageRunners(scope, workerLogger, getRunners(this), workerLogPrefix, this.timeout),
-                        ], (err) => {
+                    new NanoTimer().time((stopWorkerTimer) => {
+                        const workerFinished = callbackTimeout(once((err) => {
                             if (err) {
                                 workerLogger.error(err);
                                 scope.result.error = err;
@@ -389,15 +384,24 @@ class CrawlKit {
                                     logger.info(`Retrying ${scope.url} - adding back to queue.`);
                                     delete scope.result.error;
                                     q.unshift(scope);
-                                    return workerFinished();
+                                    return queueItemFinished();
                                 }
                                 logger.info(`${scope.url} crashed ${scope.tries} times. Giving up.`);
                             }
                             if (shouldStream) {
                                 stream.write([scope.url, scope.result]);
                             }
-                            workerFinished(err);
-                        });
+                            queueItemFinished(err);
+                        }), this.timeout);
+
+                        async.waterfall([
+                            step.acquireBrowser(scope, workerLogger, pool),
+                            step.createPage(scope, workerLogger),
+                            step.setPageSettings(scope, workerLogger, this.phantomPageSettings, this.followRedirects),
+                            step.openPage(scope, workerLogger, addUrl, this.followRedirects, this.redirectFilter),
+                            step.findLinks(scope, workerLogger, getFinder(this), getFinderParameters(this), addUrl),
+                            step.pageRunners(scope, workerLogger, getRunners(this), workerLogPrefix),
+                        ], workerFinished);
                     }, '', 'm', (workerRuntime) => {
                         workerLogger.info('Finished. Took %sms.', workerRuntime);
                     });
