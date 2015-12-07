@@ -385,11 +385,14 @@ class CrawlKit {
                                 }
                             }
                             stopWorkerTimer();
-                            if (err instanceof HeadlessError && scope.tries < this.retries) {
-                                logger.info(`Retrying ${scope.url} - adding back to queue`);
-                                delete scope.result.error;
-                                q.unshift(scope);
-                                return workerFinished();
+                            if (err instanceof HeadlessError) {
+                                if (scope.tries < this.retries) {
+                                    logger.info(`Retrying ${scope.url} - adding back to queue.`);
+                                    delete scope.result.error;
+                                    q.unshift(scope);
+                                    return workerFinished();
+                                }
+                                logger.info(`${scope.url} crashed ${scope.tries} times. Giving up.`);
                             }
                             if (shouldStream) {
                                 stream.write([scope.url, scope.result]);
@@ -402,10 +405,10 @@ class CrawlKit {
                 }, this.concurrency);
 
                 q.drain = () => {
-                    logger.debug('Queue empty. Stopping crawler timer');
+                    logger.debug('Queue empty. Stopping crawler timer.');
 
                     stopCrawlTimer();
-                    logger.debug('Draining pool');
+                    logger.debug('Draining pool.');
                     pool.drain(() => pool.destroyAllNow());
 
                     if (shouldStream) {

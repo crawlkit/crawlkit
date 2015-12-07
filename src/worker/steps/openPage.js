@@ -9,6 +9,8 @@ module.exports = (scope, logger, addUrl, followRedirects, redirectFilter) => {
     return (cb) => {
         logger.debug('Opening page.');
         const done = once(cb);
+
+        logger.debug('Setting onNavigationRequested');
         scope.page.onNavigationRequested = (redirectedToUrl, type, willNavigate, mainFrame) => {
             if (urijs(scope.url).equals(redirectedToUrl)) {
                 // this is the initial open of the task URL, ignore
