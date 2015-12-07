@@ -327,7 +327,6 @@ class CrawlKit {
     * @return {(Stream|Promise.<Object>)} By default a Promise object is returned that resolves to the result. If streaming is enabled it returns a JSON stream of the results.
     */
     crawl(shouldStream) {
-        const crawlTimer = new NanoTimer();
         let stream;
         if (shouldStream) {
             stream = JSONStream.stringifyObject();
@@ -341,7 +340,7 @@ class CrawlKit {
                 throw new Error(`Defined url '${this.url}' is not valid.`);
             }
             const seen = new Map();
-            crawlTimer.time((stopCrawlTimer) => {
+            new NanoTimer().time((stopCrawlTimer) => {
                 let addUrl;
                 const q = async.queue((scope, workerFinished) => {
                     scope.tries++;
