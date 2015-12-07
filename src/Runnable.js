@@ -1,6 +1,15 @@
 'use strict'; // eslint-disable-line
 
+/**
+* @private
+*/
 const timeoutKey = Symbol();
+
+/**
+* The default timeout for a runnable in ms.
+* @type {!integer}
+* @default 10000
+*/
 const DEFAULT_TIMEOUT = 10000;
 
 class Runnable {
