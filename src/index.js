@@ -402,8 +402,12 @@ class CrawlKit {
                 }, this.concurrency);
 
                 q.drain = () => {
+                    logger.debug('Queue empty. Stopping crawler timer');
+
                     stopCrawlTimer();
+                    logger.debug('Draining pool');
                     pool.drain(() => pool.destroyAllNow());
+
                     if (shouldStream) {
                         stream.end();
                         resolve();
