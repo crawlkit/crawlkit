@@ -74,7 +74,11 @@ module.exports = (scope, logger, runners, workerLogPrefix, timeout) => {
 
             Promise.resolve(runner.getCompanionFiles())
             .then((companionFiles) => {
-                return Promise.all((companionFiles || []).map((filename) => {
+                const files = companionFiles || [];
+                if (files.length) {
+                    runnerLogger.debug(`Starting to inject ${files.length} companion files`);
+                }
+                return Promise.all(files.map((filename) => {
                     return new Promise((injected, reject) => {
                         scope.page.injectJs(filename, (err, result) => {
                             if (err) {
@@ -82,10 +86,10 @@ module.exports = (scope, logger, runners, workerLogPrefix, timeout) => {
                                 return reject(err);
                             }
                             if (!result) {
-                                runnerLogger.error(`Failed to inject companion file '${filename}' on ${scope.url}`);
-                                return reject(`Failed to inject companion file '${filename}'`);
+                                runnerLogger.error(`Failed to inject '${filename}'`);
+                                return reject(`Failed to inject '${filename}'`);
                             }
-                            runnerLogger.debug(`Injected companion file '${filename}' on ${scope.url}`);
+                            runnerLogger.debug(`Injected '${filename}'`);
                             injected();
                         });
                     });

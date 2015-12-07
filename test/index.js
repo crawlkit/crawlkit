@@ -504,7 +504,7 @@ describe('CrawlKit', function main() {
                 results[`${url}/`] = {
                     runners: {
                         broken: {
-                            error: "Failed to inject companion file '/not/available.js'",
+                            error: "Failed to inject '/not/available.js'",
                         },
                     },
                 };
