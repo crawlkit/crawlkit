@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Source: src/Runner.js</title>
+    <title>JSDoc: Source: src/Runnable.js</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,7 +17,7 @@
 
 <div id="main">
 
-    <h1 class="page-title">Source: src/Runner.js</h1>
+    <h1 class="page-title">Source: src/Runnable.js</h1>
 
     
 
@@ -28,48 +28,73 @@
         <article>
             <pre class="prettyprint source linenums"><code>'use strict'; // eslint-disable-line
 
-const Runnable = require('./Runnable.js');
+/**
+* @private
+*/
+const timeoutKey = Symbol();
 
 /**
-* A webpage runner blueprint
+* The default timeout for a runnable in ms.
+* @type {!integer}
+* @default 10000
+*/
+const DEFAULT_TIMEOUT = 10000;
+
+/**
+* A webpage runnable blueprint
 *
 * @interface
 */
-class Runner extends Runnable {
+class Runnable {
 
     /**
-    * A method to get a function from that is evaluated within the web page and returns a result.
+    * A method to get a function from that is evaluated inm various ways.
     *
     * The returned function should call back with an result of any serializable kind by calling
     * `window.callPhantom(error, result)`.
     * If your method did not provoke an error, pass null as the first argument.
+    * You can also throw an error from your returned function.
+    * Console output from the returned function can be seen if DEBUG="*:debug" is enabled.
     *
-    * The time out of the returned function is controlled via {@link Runner#timeout}.
+    * The time out of the returned function is controlled via {@link Runnable#timeout}.
     *
-    * The returned function will be called immediately after page load, any defined {@link Finder} and other {@link Runner}s added before.
+    * Keep in mind that returned functions run in the webpage (and as such are restricted to browser features).
+    * There are no node features available. Also, closures, etc. won't work.
+    * Write this function as if it was called inside a pretty old WebKit.
     *
-    * @see [finders/genericAnchors.js]{@link https://github.com/crawlkit/crawlkit/blob/master/finders/genericAnchors.js} for an example of a valid returned runnable function.
+    * The returned function will be called immediately after page load.
+    *
     * @return {Function} A function to be evaluated within the crawled webpage
     */
     getRunnable() {
-        return function emptyRunner() {
+        return function noopFunction() {
             window.callPhantom(null, undefined);
         };
     }
 
     /**
-    * The (local) files returned by this method are injected into the webpage before
-    * the method received from {@link Runner#getRunnable} is evaluated.
-    * Any global exposed by the companion files can be accessed by the method returned from {@link Runner#getRunnable}.
+    * Optional. Getter/setter for the timeout of the method returned by {@link Runnable#getRunnable}.
     *
-    * @return {(Array|Promise.&lt;Array>)} Has to either return an Array or a Promise resolving to an Array. Return an empty Array if your code does not need companion files.
+    * Values under zero are set to zero.
+    *
+    * @type {!integer}
+    * @default 10000 (10 seconds)
     */
-    getCompanionFiles() {
-        return [];
+    set timeout(num) {
+        this[timeoutKey] = parseInt(num, 10);
+    }
+
+    /**
+    * @ignore
+    */
+    get timeout() {
+        return Math.max(0, this[timeoutKey] || DEFAULT_TIMEOUT);
     }
 }
 
-module.exports = Runner;
+Runnable.DEFAULT_TIMEOUT = DEFAULT_TIMEOUT;
+
+module.exports = Runnable;
 </code></pre>
         </article>
     </section>

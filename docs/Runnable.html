@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Interface: Runner</title>
+    <title>JSDoc: Interface: Runnable</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,7 +17,7 @@
 
 <div id="main">
 
-    <h1 class="page-title">Interface: Runner</h1>
+    <h1 class="page-title">Interface: Runnable</h1>
 
     
 
@@ -28,9 +28,9 @@
 
 <header>
     
-        <h2>Runner</h2>
+        <h2>Runnable</h2>
         
-            <div class="class-description">A webpage runner blueprint</div>
+            <div class="class-description">A webpage runnable blueprint</div>
         
     
 </header>
@@ -72,7 +72,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_Runner.js.html">src/Runner.js</a>, <a href="src_Runner.js.html#line10">line 10</a>
+        <a href="src_Runnable.js.html">src/Runnable.js</a>, <a href="src_Runnable.js.html#line20">line 20</a>
     </li></ul></dd>
     
 
@@ -99,34 +99,32 @@
     
 
     
-
-    
-        <h3 class="subsection-title">Methods</h3>
+        <h3 class="subsection-title">Members</h3>
 
         
             
+<h4 class="name" id="timeout"><span class="type-signature">(non-null) </span>timeout<span class="type-signature"> :integer</span></h4>
 
-    
-
-    <h4 class="name" id="getCompanionFiles"><span class="type-signature"></span>getCompanionFiles<span class="signature">()</span><span class="type-signature"> &rarr; {Array|Promise.&lt;Array>}</span></h4>
-
-    
 
 
 
 <div class="description">
-    The (local) files returned by this method are injected into the webpage before
-the method received from <a href="Runner.html#getRunnable"><code>Runner#getRunnable</code></a> is evaluated.
-Any global exposed by the companion files can be accessed by the method returned from <a href="Runner.html#getRunnable"><code>Runner#getRunnable</code></a>.
+    Optional. Getter/setter for the timeout of the method returned by <a href="Runnable.html#getRunnable"><code>Runnable#getRunnable</code></a>.
+
+Values under zero are set to zero.
 </div>
 
 
 
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">integer</span>
 
 
-
-
-
+        </li>
+    </ul>
 
 
 
@@ -157,11 +155,16 @@ Any global exposed by the companion files can be accessed by the method returned
     
 
     
+    <dt class="tag-default">Default Value:</dt>
+    <dd class="tag-default"><ul class="dummy">
+            <li>10000 (10 seconds)</li>
+        </ul></dd>
+    
 
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_Runner.js.html">src/Runner.js</a>, <a href="src_Runner.js.html#line39">line 39</a>
+        <a href="src_Runnable.js.html">src/Runnable.js</a>, <a href="src_Runnable.js.html#line55">line 55</a>
     </li></ul></dd>
     
 
@@ -177,40 +180,11 @@ Any global exposed by the companion files can be accessed by the method returned
 
 
 
-
-
-
-
-
-
-
-<h5>Returns:</h5>
-
         
-<div class="param-desc">
-    Has to either return an Array or a Promise resolving to an Array. Return an empty Array if your code does not need companion files.
-</div>
-
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">Array</span>
-|
-
-<span class="param-type">Promise.&lt;Array></span>
-
-
-    </dd>
-</dl>
-
     
 
-
+    
+        <h3 class="subsection-title">Methods</h3>
 
         
             
@@ -224,15 +198,21 @@ Any global exposed by the companion files can be accessed by the method returned
 
 
 <div class="description">
-    A method to get a function from that is evaluated within the web page and returns a result.
+    A method to get a function from that is evaluated inm various ways.
 
 The returned function should call back with an result of any serializable kind by calling
 `window.callPhantom(error, result)`.
 If your method did not provoke an error, pass null as the first argument.
+You can also throw an error from your returned function.
+Console output from the returned function can be seen if DEBUG="*:debug" is enabled.
 
-The time out of the returned function is controlled via <code>Runner#timeout</code>.
+The time out of the returned function is controlled via <a href="Runnable.html#timeout"><code>Runnable#timeout</code></a>.
 
-The returned function will be called immediately after page load, any defined <a href="Finder.html"><code>Finder</code></a> and other <a href="Runner.html"><code>Runner</code></a>s added before.
+Keep in mind that returned functions run in the webpage (and as such are restricted to browser features).
+There are no node features available. Also, closures, etc. won't work.
+Write this function as if it was called inside a pretty old WebKit.
+
+The returned function will be called immediately after page load.
 </div>
 
 
@@ -276,19 +256,12 @@ The returned function will be called immediately after page load, any defined <a
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_Runner.js.html">src/Runner.js</a>, <a href="src_Runner.js.html#line26">line 26</a>
+        <a href="src_Runnable.js.html">src/Runnable.js</a>, <a href="src_Runnable.js.html#line41">line 41</a>
     </li></ul></dd>
     
 
     
 
-    
-    <dt class="tag-see">See:</dt>
-    <dd class="tag-see">
-        <ul>
-            <li><a href="https://github.com/crawlkit/crawlkit/blob/master/finders/genericAnchors.js">finders/genericAnchors.js</a> for an example of a valid returned runnable function.</li>
-        </ul>
-    </dd>
     
 
     

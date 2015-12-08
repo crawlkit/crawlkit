@@ -156,7 +156,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_index.js.html">src/index.js</a>, <a href="src_index.js.html#line110">line 110</a>
+        <a href="src_index.js.html">src/index.js</a>, <a href="src_index.js.html#line87">line 87</a>
     </li></ul></dd>
     
 
@@ -255,7 +255,7 @@ Each entry is supposed to be an object <a href="http://phantomjs.org/api/webpage
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_index.js.html">src/index.js</a>, <a href="src_index.js.html#line312">line 312</a>
+        <a href="src_index.js.html">src/index.js</a>, <a href="src_index.js.html#line293">line 293</a>
     </li></ul></dd>
     
 
@@ -336,7 +336,7 @@ Values under one are set to one.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_index.js.html">src/index.js</a>, <a href="src_index.js.html#line157">line 157</a>
+        <a href="src_index.js.html">src/index.js</a>, <a href="src_index.js.html#line134">line 134</a>
     </li></ul></dd>
     
 
@@ -414,7 +414,7 @@ When following redirects, the original page is not processed.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_index.js.html">src/index.js</a>, <a href="src_index.js.html#line295">line 295</a>
+        <a href="src_index.js.html">src/index.js</a>, <a href="src_index.js.html#line276">line 276</a>
     </li></ul></dd>
     
 
@@ -489,7 +489,7 @@ Nested settings can just be provided in dot notation as the key, e.g. 'settings.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_index.js.html">src/index.js</a>, <a href="src_index.js.html#line277">line 277</a>
+        <a href="src_index.js.html">src/index.js</a>, <a href="src_index.js.html#line258">line 258</a>
     </li></ul></dd>
     
 
@@ -563,7 +563,7 @@ For a list of parameters, please refer to the <a href="http://phantomjs.org/api/
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_index.js.html">src/index.js</a>, <a href="src_index.js.html#line258">line 258</a>
+        <a href="src_index.js.html">src/index.js</a>, <a href="src_index.js.html#line239">line 239</a>
     </li></ul></dd>
     
 
@@ -581,18 +581,17 @@ For a list of parameters, please refer to the <a href="http://phantomjs.org/api/
 
         
             
-<h4 class="name" id="retries"><span class="type-signature">(non-null) </span>retries<span class="type-signature"> :integer</span></h4>
+<h4 class="name" id="redirectFilter"><span class="type-signature"></span>redirectFilter<span class="type-signature"> :function</span></h4>
 
 
 
 
 <div class="description">
-    Getter/setter for the number of retries when a PhantomJS instance crashes on a page.
-When a PhantomJS instance crashes whilst crawling a webpage, this instance is shutdown
-and replaced by a new one. By default the webpage that failed in such a way will be
-re-queued. This member controls how often that re-queueing happens.
-
-Values under zero are set to zero.
+    Getter/setter for the filter that is applied to redirected URLs.
+With this filter you can prevent the redirect or rewrite it.
+The filter callback gets two arguments. The first one is the target URL
+the scond one the source URL.
+Return false for preventing the redirect. Return a String (URL) to follow the redirect.
 </div>
 
 
@@ -601,7 +600,7 @@ Values under zero are set to zero.
     <ul>
         <li>
             
-<span class="param-type">integer</span>
+<span class="param-type">function</span>
 
 
         </li>
@@ -636,16 +635,11 @@ Values under zero are set to zero.
     
 
     
-    <dt class="tag-default">Default Value:</dt>
-    <dd class="tag-default"><ul class="dummy">
-            <li>3 (try 2 more times after the first failure)</li>
-        </ul></dd>
-    
 
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_index.js.html">src/index.js</a>, <a href="src_index.js.html#line213">line 213</a>
+        <a href="src_index.js.html">src/index.js</a>, <a href="src_index.js.html#line316">line 316</a>
     </li></ul></dd>
     
 
@@ -669,8 +663,8 @@ Values under zero are set to zero.
 
 
 <div class="description">
-    Getter/setter for the timeout in ms for runners and finder functions.
-The timeout starts fresh for each runner.
+    Getter/setter for overall timeout for one website processing (opening page, evaluating runners and finder functions).
+The timeout starts fresh for each website.
 
 Values under zero are set to zero.
 </div>
@@ -718,14 +712,100 @@ Values under zero are set to zero.
     
     <dt class="tag-default">Default Value:</dt>
     <dd class="tag-default"><ul class="dummy">
-            <li>10000 (10 seconds)</li>
+            <li>30000 (30 seconds)</li>
         </ul></dd>
     
 
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_index.js.html">src/index.js</a>, <a href="src_index.js.html#line136">line 136</a>
+        <a href="src_index.js.html">src/index.js</a>, <a href="src_index.js.html#line113">line 113</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
+<h4 class="name" id="tries"><span class="type-signature">(non-null) </span>tries<span class="type-signature"> :integer</span></h4>
+
+
+
+
+<div class="description">
+    Getter/setter for the number of tries when a PhantomJS instance crashes on a page
+or <a href="CrawlKit.html#timeout"><code>CrawlKit#timeout</code></a> is hit.
+When a PhantomJS instance crashes whilst crawling a webpage, this instance is shutdown
+and replaced by a new one. By default the webpage that failed in such a way will be
+re-queued.
+If the finders and runners did not respond within the defined timeout,
+it will be tried to run them again as well.
+This member controls how often that re-queueing happens.
+
+Values under zero are set to zero.
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">integer</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-default">Default Value:</dt>
+    <dd class="tag-default"><ul class="dummy">
+            <li>3 (read: try two more times after the first failure, three times in total)</li>
+        </ul></dd>
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_index.js.html">src/index.js</a>, <a href="src_index.js.html#line194">line 194</a>
     </li></ul></dd>
     
 
@@ -799,7 +879,7 @@ If the protocol is omitted (e.g. URL starts with //), the URL will be rewritten 
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_index.js.html">src/index.js</a>, <a href="src_index.js.html#line174">line 174</a>
+        <a href="src_index.js.html">src/index.js</a>, <a href="src_index.js.html#line151">line 151</a>
     </li></ul></dd>
     
 
@@ -836,7 +916,7 @@ If the protocol is omitted (e.g. URL starts with //), the URL will be rewritten 
     Allows you to add a runner that is executed on each crawled page.
 The returned value of the runner is added to the overall result.
 Runners run sequentially on each webpage in the order they were added.
-If a runner is crashing PhantomJS more than <a href="CrawlKit.html#retries"><code>CrawlKit#retries</code></a> times, subsequent <a href="Runner.html"><code>Runner</code></a>s are not executed.
+If a runner is crashing PhantomJS more than <a href="CrawlKit.html#tries"><code>CrawlKit#tries</code></a> times, subsequent <a href="Runner.html"><code>Runner</code></a>s are not executed.
 </div>
 
 
@@ -1005,7 +1085,7 @@ If a runner is crashing PhantomJS more than <a href="CrawlKit.html#retries"><cod
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_index.js.html">src/index.js</a>, <a href="src_index.js.html#line235">line 235</a>
+        <a href="src_index.js.html">src/index.js</a>, <a href="src_index.js.html#line216">line 216</a>
     </li></ul></dd>
     
 
@@ -1163,7 +1243,7 @@ If a runner is crashing PhantomJS more than <a href="CrawlKit.html#retries"><cod
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_index.js.html">src/index.js</a>, <a href="src_index.js.html#line332">line 332</a>
+        <a href="src_index.js.html">src/index.js</a>, <a href="src_index.js.html#line336">line 336</a>
     </li></ul></dd>
     
 
@@ -1366,7 +1446,7 @@ and is optional (e.g. if you want to only work on a single page).
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_index.js.html">src/index.js</a>, <a href="src_index.js.html#line193">line 193</a>
+        <a href="src_index.js.html">src/index.js</a>, <a href="src_index.js.html#line170">line 170</a>
     </li></ul></dd>
     
 
@@ -1408,13 +1488,13 @@ and is optional (e.g. if you want to only work on a single page).
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="finders.module_genericAnchors.html">genericAnchors</a></li></ul><h3>Classes</h3><ul><li><a href="CrawlKit.html">CrawlKit</a></li></ul><h3>Interfaces</h3><ul><li><a href="Finder.html">Finder</a></li><li><a href="Runner.html">Runner</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="finders.module_genericAnchors.html">genericAnchors</a></li></ul><h3>Classes</h3><ul><li><a href="CrawlKit.html">CrawlKit</a></li></ul><h3>Interfaces</h3><ul><li><a href="Finder.html">Finder</a></li><li><a href="Runnable.html">Runnable</a></li><li><a href="Runner.html">Runner</a></li></ul><h3>Global</h3><ul><li><a href="global.html#DEFAULT_TIMEOUT">DEFAULT_TIMEOUT</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a> on Fri Nov 27 2015 14:42:58 GMT+1100 (AEDT)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a> on Tue Dec 08 2015 12:24:46 GMT+1100 (AEDT)
 </footer>
 
 <script> prettyPrint(); </script>
