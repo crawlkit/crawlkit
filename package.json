@@ -1,6 +1,6 @@
 {
   "name": "crawlkit",
-  "version": "1.4.8",
+  "version": "1.5.0",
   "description": "A crawler based on Phantom. Allows discovery of dynamic content and supports custom scrapers.",
   "main": "src/index.js",
   "repository": "https://github.com/crawlkit/crawlkit.git",
