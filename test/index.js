@@ -10,9 +10,13 @@ const auth = require('http-auth');
 const http = require('http');
 const httpProxy = require('http-proxy');
 const HeadlessError = require('node-phantom-simple/headless_error');
+const TimeoutError = require('callback-timeout/errors').TimeoutError;
 
 const pkg = require(path.join(__dirname, '..', 'package.json'));
 const CrawlKit = require(path.join(__dirname, '..', pkg.main));
+const Finder = require(path.join(__dirname, '..', 'src', 'Finder.js'));
+const Runner = require(path.join(__dirname, '..', 'src', 'Runner.js'));
+
 const genericLinkFinder = require('../finders/genericAnchors.js');
 
 chai.should();
@@ -109,9 +113,20 @@ describe('CrawlKit', function main() {
             const crawler = new CrawlKit();
             return crawler.crawl().should.eventually.be.rejected;
         });
+
         it('should error if erroneous URL was given', () => {
             const crawler = new CrawlKit('mailto:bla@bla');
             return crawler.crawl().should.eventually.be.rejected;
+        });
+
+        it('should time out', () => {
+            const crawler = new CrawlKit(url);
+            crawler.timeout = 5;
+            const results = {};
+            results[`${url}/`] = {
+                error: new TimeoutError('Worker timed out after 5ms.'),
+            };
+            return crawler.crawl().should.eventually.deep.equal({ results });
         });
 
         describe('with a finder', () => {
@@ -202,16 +217,63 @@ describe('CrawlKit', function main() {
                 return crawler.crawl().should.eventually.deep.equal({ results });
             });
 
-            it('that never returns', () => {
-                const crawler = new CrawlKit(url);
+            describe('timeouts', () => {
+                const originalTimeout = Finder.DEFAULT_TIMEOUT;
 
-                const results = {};
-                results[`${url}/`] = {
-                    error: new Error('callback timeout'),
-                };
-                crawler.timeout = 200;
-                crawler.setFinder({ getRunnable: () => function neverReturningFilter() {} });
-                return crawler.crawl().should.eventually.deep.equal({ results });
+                beforeEach(() => {
+                    Finder.DEFAULT_TIMEOUT = 1234;
+                });
+
+                afterEach(() => {
+                    Finder.DEFAULT_TIMEOUT = originalTimeout;
+                });
+
+                it('that never returns (use given timeout)', () => {
+                    const crawler = new CrawlKit(url);
+
+                    const results = {};
+                    results[`${url}/`] = {
+                        error: new TimeoutError('Finder timed out after 200ms.'),
+                    };
+
+                    crawler.setFinder({
+                        getRunnable: () => function neverReturningFilter() {},
+                        timeout: 200,
+                    });
+                    return crawler.crawl().should.eventually.deep.equal({ results });
+                });
+
+                it('that never returns (use default timeout)', () => {
+                    const crawler = new CrawlKit(url);
+
+                    const results = {};
+                    results[`${url}/`] = {
+                        error: new TimeoutError(`Finder timed out after ${Finder.DEFAULT_TIMEOUT}ms.`),
+                    };
+
+                    crawler.setFinder({
+                        getRunnable: () => function neverReturningFilter() {},
+                    });
+                    return crawler.crawl().should.eventually.deep.equal({ results });
+                });
+
+                it('should try X times in case of timeout', () => {
+                    const crawler = new CrawlKit(url);
+                    crawler.tries = 2;
+
+                    const results = {};
+                    results[`${url}/`] = {
+                        error: new TimeoutError(`Finder timed out after ${Finder.DEFAULT_TIMEOUT}ms.`),
+                    };
+                    const spy = sinon.spy(() => function neverReturningFilter() {});
+                    crawler.setFinder({
+                        getRunnable: spy,
+                    });
+                    return crawler.crawl().then((result) => {
+                        spy.callCount.should.equal(2);
+                        return result.results;
+                    }).should.eventually.deep.equal(results);
+                });
             });
 
             it('on a page with errors', () => {
@@ -512,58 +574,93 @@ describe('CrawlKit', function main() {
             });
         });
 
-        it('should be able to time out', () => {
-            const crawler = new CrawlKit(url);
-            crawler.timeout = 200;
-            crawler.addRunner('x', {
-                getCompanionFiles: () => [],
-                getRunnable: () => function noop() {},
+        describe('timeouts', () => {
+            const originalTimeout = Runner.DEFAULT_TIMEOUT;
+
+            beforeEach(() => {
+                Runner.DEFAULT_TIMEOUT = 1234;
             });
 
-            const results = {};
-            results[`${url}/`] = {
-                runners: {
-                    x: {
-                        error: new Error('callback timeout'),
-                    },
-                },
-            };
-            return crawler.crawl().should.eventually.deep.equal({ results });
-        });
-
-        it('should be able to time out (multiple)', () => {
-            const crawler = new CrawlKit(url);
-            crawler.timeout = 200;
-            crawler.addRunner('x', {
-                getCompanionFiles: () => [],
-                getRunnable: () => function noop() {},
+            afterEach(() => {
+                Runner.DEFAULT_TIMEOUT = originalTimeout;
             });
 
-            crawler.addRunner('y', {
-                getCompanionFiles: () => [],
-                getRunnable: () => function success() { window.callPhantom(null, 'success'); },
+            it('given timeout', () => {
+                const crawler = new CrawlKit(url);
+
+                crawler.addRunner('x', {
+                    timeout: 200,
+                    getCompanionFiles: () => [],
+                    getRunnable: () => function noop() {},
+                });
+
+                const results = {};
+                results[`${url}/`] = {
+                    runners: {
+                        x: {
+                            error: new TimeoutError('Runner timed out after 200ms.'),
+                        },
+                    },
+                };
+                return crawler.crawl().should.eventually.deep.equal({ results });
             });
 
-            crawler.addRunner('z', {
-                getCompanionFiles: () => [],
-                getRunnable: () => function noop() {},
+            it('default timeout', () => {
+                const crawler = new CrawlKit(url);
+
+                crawler.addRunner('x', {
+                    getCompanionFiles: () => [],
+                    getRunnable: () => function noop() {},
+                });
+
+                const results = {};
+                results[`${url}/`] = {
+                    runners: {
+                        x: {
+                            error: new TimeoutError(`Runner timed out after ${Runner.DEFAULT_TIMEOUT}ms.`),
+                        },
+                    },
+                };
+                return crawler.crawl().should.eventually.deep.equal({ results });
             });
 
-            const results = {};
-            results[`${url}/`] = {
-                runners: {
-                    x: {
-                        error: new Error('callback timeout'),
+            it('multiple', () => {
+                const crawler = new CrawlKit(url);
+
+                crawler.addRunner('x', {
+                    timeout: 100,
+                    getCompanionFiles: () => [],
+                    getRunnable: () => function noop() {},
+                });
+
+                crawler.addRunner('y', {
+                    timeout: 100,
+                    getCompanionFiles: () => [],
+                    getRunnable: () => function success() { window.callPhantom(null, 'success'); },
+                });
+
+                crawler.addRunner('z', {
+                    timeout: 100,
+                    getCompanionFiles: () => [],
+                    getRunnable: () => function noop() {},
+                });
+
+                const results = {};
+                results[`${url}/`] = {
+                    runners: {
+                        x: {
+                            error: new TimeoutError('Runner timed out after 100ms.'),
+                        },
+                        y: {
+                            result: 'success',
+                        },
+                        z: {
+                            error: new TimeoutError('Runner timed out after 100ms.'),
+                        },
                     },
-                    y: {
-                        result: 'success',
-                    },
-                    z: {
-                        error: new Error('callback timeout'),
-                    },
-                },
-            };
-            return crawler.crawl().should.eventually.deep.equal({ results });
+                };
+                return crawler.crawl().should.eventually.deep.equal({ results });
+            });
         });
 
         describe('Parameters', () => {
@@ -825,7 +922,7 @@ describe('CrawlKit', function main() {
             });
 
             it('or how many times defined', () => {
-                crawler.retries = 2;
+                crawler.tries = 2;
 
                 return crawler.crawl().then((result) => {
                     flakyRunnable.should.have.been.calledTwice;

@@ -3,11 +3,14 @@
 const debug = require('debug');
 const once = require('once');
 const path = require('path');
-const timeoutCallback = require('timeout-callback');
-const isPhantomError = require(path.join(__dirname, '..', '..', 'isPhantomError.js'));
+const callbackTimeout = require('callback-timeout');
+const basePath = path.join(__dirname, '..', '..');
+const isPhantomError = require(path.join(basePath, 'isPhantomError.js'));
+const Runner = require(path.join(basePath, 'Runner.js'));
+
 const HeadlessError = require('node-phantom-simple/headless_error');
 
-module.exports = (scope, logger, runners, workerLogPrefix, timeout) => {
+module.exports = (scope, logger, runners, workerLogPrefix) => {
     return (cb) => {
         logger.debug('Trying to run page runners.');
 
@@ -37,6 +40,8 @@ module.exports = (scope, logger, runners, workerLogPrefix, timeout) => {
 
             const runnerId = next.value[0];
             const runnerObj = next.value[1];
+            const runner = runnerObj.runner;
+            const parameters = runnerObj.parameters;
 
             const runnerLogPrefix = `${workerLogPrefix}:runner(${runnerId})`;
             const runnerLogger = {
@@ -46,7 +51,8 @@ module.exports = (scope, logger, runners, workerLogPrefix, timeout) => {
                 error: debug(`${runnerLogPrefix}:error`),
             };
 
-            const doneAndNext = timeoutCallback(timeout, once((res) => {
+            const timeout = runner.timeout || Runner.DEFAULT_TIMEOUT;
+            const doneAndNext = callbackTimeout(once((res) => {
                 logger.debug(`Runner '${runnerId}' finished.`);
                 let err;
                 let result;
@@ -67,10 +73,7 @@ module.exports = (scope, logger, runners, workerLogPrefix, timeout) => {
                 }
                 logger.debug('On to next runner.');
                 nextRunner();
-            }));
-
-            const runner = runnerObj.runner;
-            const parameters = runnerObj.parameters;
+            }), timeout, `Runner timed out after ${timeout}ms.`);
 
             Promise.resolve(runner.getCompanionFiles())
             .then((companionFiles) => {

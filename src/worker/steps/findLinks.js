@@ -1,9 +1,11 @@
 'use strict'; // eslint-disable-line
 const path = require('path');
 const once = require('once');
-const timeoutCallback = require('timeout-callback');
-const isPhantomError = require(path.join(__dirname, '..', '..', 'isPhantomError.js'));
-const applyUrlFilterFn = require(path.join(__dirname, '..', '..', 'applyUrlFilterFn.js'));
+const callbackTimeout = require('callback-timeout');
+const basePath = path.join(__dirname, '..', '..');
+const isPhantomError = require(path.join(basePath, 'isPhantomError.js'));
+const applyUrlFilterFn = require(path.join(basePath, 'applyUrlFilterFn.js'));
+const Finder = require(path.join(basePath, 'Finder.js'));
 
 function getFinderRunnable(finder) {
     if (!finder) {
@@ -16,7 +18,7 @@ function getUrlFilter(finder) {
     return (finder && finder.urlFilter) ? finder.urlFilter.bind(finder) : null;
 }
 
-module.exports = (scope, logger, finder, finderParameters, addUrl, timeout) => {
+module.exports = (scope, logger, finder, finderParameters, addUrl) => {
     return (cb) => {
         logger.debug('Trying to run finder.');
         if (!finder) {
@@ -24,11 +26,13 @@ module.exports = (scope, logger, finder, finderParameters, addUrl, timeout) => {
             return cb();
         }
 
-        const done = timeoutCallback(timeout, once((err) => {
+        const timeout = finder.timeout || Finder.DEFAULT_TIMEOUT;
+        const done = callbackTimeout(once((err) => {
             logger.debug('Finder ran.');
             done.called = true;
             cb(err);
-        }));
+        }), timeout, `Finder timed out after ${timeout}ms.`);
+
         function phantomCallback(err, urls) {
             if (done.called) {
                 logger.debug('Callback alread called.');

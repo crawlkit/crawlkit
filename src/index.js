@@ -1,10 +1,13 @@
 'use strict'; // eslint-disable-line
 
 const HeadlessError = require('node-phantom-simple/headless_error');
+const TimeoutError = require('callback-timeout/errors').TimeoutError;
 
 const async = require('async');
 const debug = require('debug');
 const urijs = require('urijs');
+const once = require('once');
+const callbackTimeout = require('callback-timeout');
 
 const NanoTimer = require('nanotimer');
 const Chance = require('chance');
@@ -35,7 +38,7 @@ const phantomParamsKey = Symbol();
 const phantomPageSettingsKey = Symbol();
 const followRedirectsKey = Symbol();
 const browserCookiesKey = Symbol();
-const retriesKey = Symbol();
+const triesKey = Symbol();
 const redirectFilterKey = Symbol();
 
 /**
@@ -99,13 +102,13 @@ class CrawlKit {
     }
 
     /**
-    * Getter/setter for the timeout in ms for runners and finder functions.
-    * The timeout starts fresh for each runner.
+    * Getter/setter for overall timeout for one website processing (opening page, evaluating runners and finder functions).
+    * The timeout starts fresh for each website.
     *
     * Values under zero are set to zero.
     *
     * @type {!integer}
-    * @default 10000 (10 seconds)
+    * @default 30000 (30 seconds)
     */
     set timeout(num) {
         this[timeoutKey] = parseInt(num, 10);
@@ -115,7 +118,7 @@ class CrawlKit {
     * @ignore
     */
     get timeout() {
-        return Math.max(0, this[timeoutKey] || 10000);
+        return Math.max(0, this[timeoutKey] || 30000);
     }
 
     /**
@@ -174,32 +177,36 @@ class CrawlKit {
     }
 
     /**
-    * Getter/setter for the number of retries when a PhantomJS instance crashes on a page.
+    * Getter/setter for the number of tries when a PhantomJS instance crashes on a page
+    * or {@link CrawlKit#timeout} is hit.
     * When a PhantomJS instance crashes whilst crawling a webpage, this instance is shutdown
     * and replaced by a new one. By default the webpage that failed in such a way will be
-    * re-queued. This member controls how often that re-queueing happens.
+    * re-queued.
+    * If the finders and runners did not respond within the defined timeout,
+    * it will be tried to run them again as well.
+    * This member controls how often that re-queueing happens.
     *
     * Values under zero are set to zero.
     *
     * @type {!integer}
-    * @default 3 (try 2 more times after the first failure)
+    * @default 3 (read: try two more times after the first failure, three times in total)
     */
-    set retries(n) {
-        this[retriesKey] = parseInt(n, 10);
+    set tries(n) {
+        this[triesKey] = parseInt(n, 10);
     }
 
     /**
     * @ignore
     */
-    get retries() {
-        return Math.max(0, this[retriesKey] || 3);
+    get tries() {
+        return Math.max(0, this[triesKey] || 3);
     }
 
     /**
     * Allows you to add a runner that is executed on each crawled page.
     * The returned value of the runner is added to the overall result.
     * Runners run sequentially on each webpage in the order they were added.
-    * If a runner is crashing PhantomJS more than {@link CrawlKit#retries} times, subsequent {@link Runner}s are not executed.
+    * If a runner is crashing PhantomJS more than {@link CrawlKit#tries} times, subsequent {@link Runner}s are not executed.
     *
     * @see For an example see `examples/simple.js`. For an example using parameters, see `examples/advanced.js`.
     * @param {!String} key The runner identificator. This is also used in the result stream/object.
@@ -327,7 +334,6 @@ class CrawlKit {
     * @return {(Stream|Promise.<Object>)} By default a Promise object is returned that resolves to the result. If streaming is enabled it returns a JSON stream of the results.
     */
     crawl(shouldStream) {
-        const crawlTimer = new NanoTimer();
         let stream;
         if (shouldStream) {
             stream = JSONStream.stringifyObject();
@@ -341,9 +347,9 @@ class CrawlKit {
                 throw new Error(`Defined url '${this.url}' is not valid.`);
             }
             const seen = new Map();
-            crawlTimer.time((stopCrawlTimer) => {
+            new NanoTimer().time((stopCrawlTimer) => {
                 let addUrl;
-                const q = async.queue((scope, workerFinished) => {
+                const q = async.queue((scope, queueItemFinished) => {
                     scope.tries++;
                     const workerLogPrefix = `crawlkit:task(${scope.id})`;
                     const workerLogger = {
@@ -351,19 +357,11 @@ class CrawlKit {
                         info: debug(`${workerLogPrefix}:info`),
                         error: debug(`${workerLogPrefix}:error`),
                     };
-                    const workerTimer = new NanoTimer();
 
                     logger.info(`Worker started - ${q.length()} task(s) left in the queue.`);
                     workerLogger.info(`Took ${scope.url} from queue` + (scope.tries > 1 ? ` (attempt ${scope.tries})` : '') + '.');
-                    workerTimer.time((stopWorkerTimer) => {
-                        async.waterfall([
-                            step.acquireBrowser(scope, workerLogger, pool),
-                            step.createPage(scope, workerLogger),
-                            step.setPageSettings(scope, workerLogger, this.phantomPageSettings, this.followRedirects),
-                            step.openPage(scope, workerLogger, addUrl, this.followRedirects, this.redirectFilter),
-                            step.findLinks(scope, workerLogger, getFinder(this), getFinderParameters(this), addUrl, this.timeout),
-                            step.pageRunners(scope, workerLogger, getRunners(this), workerLogPrefix, this.timeout),
-                        ], (err) => {
+                    new NanoTimer().time((stopWorkerTimer) => {
+                        const workerFinished = callbackTimeout(once((err) => {
                             if (err) {
                                 workerLogger.error(err);
                                 scope.result.error = err;
@@ -385,20 +383,29 @@ class CrawlKit {
                                 }
                             }
                             stopWorkerTimer();
-                            if (err instanceof HeadlessError) {
-                                if (scope.tries < this.retries) {
+                            if (err instanceof HeadlessError || err instanceof TimeoutError) {
+                                if (scope.tries < this.tries) {
                                     logger.info(`Retrying ${scope.url} - adding back to queue.`);
                                     delete scope.result.error;
                                     q.unshift(scope);
-                                    return workerFinished();
+                                    return queueItemFinished();
                                 }
-                                logger.info(`${scope.url} crashed ${scope.tries} times. Giving up.`);
+                                logger.info(`Tried to crawl ${scope.url} ${scope.tries} times. Giving up.`);
                             }
                             if (shouldStream) {
                                 stream.write([scope.url, scope.result]);
                             }
-                            workerFinished(err);
-                        });
+                            queueItemFinished(err);
+                        }), this.timeout, `Worker timed out after ${this.timeout}ms.`);
+
+                        async.waterfall([
+                            step.acquireBrowser(scope, workerLogger, pool),
+                            step.createPage(scope, workerLogger),
+                            step.setPageSettings(scope, workerLogger, this.phantomPageSettings, this.followRedirects),
+                            step.openPage(scope, workerLogger, addUrl, this.followRedirects, this.redirectFilter),
+                            step.findLinks(scope, workerLogger, getFinder(this), getFinderParameters(this), addUrl),
+                            step.pageRunners(scope, workerLogger, getRunners(this), workerLogPrefix),
+                        ], workerFinished);
                     }, '', 'm', (workerRuntime) => {
                         workerLogger.info('Finished. Took %sms.', workerRuntime);
                     });
