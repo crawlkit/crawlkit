@@ -49,7 +49,7 @@ class Runnable {
     *
     * Values under zero are set to zero.
     *
-    * @type {!integer}
+    * @type {integer}
     * @default 10000 (10 seconds)
     */
     set timeout(num) {
