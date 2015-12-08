@@ -12,6 +12,11 @@ const timeoutKey = Symbol();
 */
 const DEFAULT_TIMEOUT = 10000;
 
+/**
+* A webpage runnable blueprint
+*
+* @interface
+*/
 class Runnable {
 
     /**
