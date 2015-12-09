@@ -38,8 +38,10 @@ module.exports = (scope, logger, addUrl, followRedirects, redirectFilter) => {
         };
 
         scope.page.onResourceReceived = (res) => {
-            if (parseInt(res.status, 10) >= 400) {
+            if (urijs(scope.url).equals(res.url) && parseInt(res.status, 10) >= 400) {
+                // main page returned with a 4XX or higher
                 done(new StatusError(res.statusText, res.status));
+                return;
             }
         };
 

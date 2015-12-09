@@ -411,13 +411,21 @@ describe('CrawlKit', function main() {
         return crawler.crawl().should.eventually.deep.equal({ results });
     });
 
-    it('should ignore non-2xx answers', () => {
+    it('should fail for non-2xx answers', () => {
         const crawler = new CrawlKit(`${url}/custom404withHtmlAnswer`);
 
         const results = {};
         results[`${url}/custom404withHtmlAnswer`] = {
             error: new StatusError('Not Found', 404),
         };
+        return crawler.crawl().should.eventually.deep.equal({ results });
+    });
+
+    it('should not fail for non-2xx answers on secondary resources', () => {
+        const crawler = new CrawlKit(`${url}/pageWith404js.html`);
+
+        const results = {};
+        results[`${url}/pageWith404js.html`] = {};
         return crawler.crawl().should.eventually.deep.equal({ results });
     });
 
