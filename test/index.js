@@ -3,7 +3,7 @@ const chai = require('chai');
 const chaiAsPromised = require('chai-as-promised');
 const sinon = require('sinon');
 const sinonChai = require('sinon-chai');
-const httpServer = require('http-server');
+const express = require('express');
 const path = require('path');
 const freeport = require('freeport');
 const auth = require('http-auth');
@@ -13,6 +13,7 @@ const httpProxy = require('http-proxy');
 const HeadlessError = require('node-phantom-simple/headless_error');
 const TimeoutError = require('callback-timeout/errors').TimeoutError;
 const TransformationError = require(path.join(__dirname, '..', 'src', 'errors.js')).TransformationError;
+const StatusError = require(path.join(__dirname, '..', 'src', 'errors.js')).StatusError;
 
 const pkg = require(path.join(__dirname, '..', 'package.json'));
 const CrawlKit = require(path.join(__dirname, '..', pkg.main));
@@ -73,10 +74,20 @@ describe('CrawlKit', function main() {
                 throw err;
             }
             port = p;
-            server = httpServer.createServer({
-                root: path.join(__dirname, 'fixtures', 'website'),
+
+            const app = express();
+            app.use(express.static(path.join(__dirname, 'fixtures', 'website')));
+
+            app.get('/custom404withHtmlAnswer', (req, res) => {
+                res.status(404).send('<html>Not found</html>');
             });
-            server.listen(port);
+
+            app.get('*', (req, res) => {
+                res.status(404).send();
+            });
+
+            server = app.listen(port);
+
             url = `http://${host}:${port}`;
 
             freeport((poxyErr, proxyPort) => {
@@ -391,12 +402,22 @@ describe('CrawlKit', function main() {
         const results = {};
         results[`${url}/deadlinks.html`] = {};
         results[`${url}/nonexistent.html`] = {
-            error: `Failed to open ${url}/nonexistent.html`,
+            error: new StatusError('Not Found', 404),
         };
         results[`${url}/404.html`] = {
-            error: `Failed to open ${url}/404.html`,
+            error: new StatusError('Not Found', 404),
         };
         crawler.setFinder(new GenericLinkFinder());
+        return crawler.crawl().should.eventually.deep.equal({ results });
+    });
+
+    it('should ignore non-2xx answers', () => {
+        const crawler = new CrawlKit(`${url}/custom404withHtmlAnswer`);
+
+        const results = {};
+        results[`${url}/custom404withHtmlAnswer`] = {
+            error: new StatusError('Not Found', 404),
+        };
         return crawler.crawl().should.eventually.deep.equal({ results });
     });
 
