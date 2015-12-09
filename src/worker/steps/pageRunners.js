@@ -8,6 +8,7 @@ const basePath = path.join(__dirname, '..', '..');
 const isPhantomError = require(path.join(basePath, 'isPhantomError.js'));
 const Runner = require(path.join(basePath, 'Runner.js'));
 
+const TransformationError = require(path.join(basePath, 'errors.js')).TransformationError;
 const HeadlessError = require('node-phantom-simple/headless_error');
 
 module.exports = (scope, logger, runners, workerLogPrefix) => {
@@ -64,15 +65,34 @@ module.exports = (scope, logger, runners, workerLogPrefix) => {
                     err = res;
                 }
                 results[runnerId] = {};
+                let tasks;
                 if (err) {
-                    results[runnerId].error = err;
+                    tasks = Promise.resolve();
                     runnerLogger.error(err);
+                    results[runnerId].error = err;
                 } else {
-                    results[runnerId].result = result;
-                    runnerLogger.info(`Finished.`);
+                    if (typeof runner.transformResult === 'function') {
+                        runnerLogger.debug('Transforming result');
+                        tasks = new Promise((resolve, reject) => {
+                            // we need to wrap this in case an error is thrown
+                            runner.transformResult(result).then(resolve, reject);
+                        });
+                    } else {
+                        // no transformation method = result used as-is
+                        tasks = Promise.resolve(result);
+                    }
+                    tasks = tasks.then((possiblyTransformedResult) => {
+                        results[runnerId].result = possiblyTransformedResult;
+                    }, (transformationError) => {
+                        runnerLogger.error(transformationError);
+                        results[runnerId].error = new TransformationError(transformationError);
+                    });
                 }
-                logger.debug('On to next runner.');
-                nextRunner();
+                tasks.then(() => {
+                    runnerLogger.info(`Finished.`);
+                    logger.debug('On to next runner.');
+                    nextRunner();
+                });
             }), timeout, `Runner timed out after ${timeout}ms.`);
 
             Promise.resolve(runner.getCompanionFiles())

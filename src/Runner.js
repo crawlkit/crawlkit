@@ -30,6 +30,19 @@ class Runner extends Runnable {
     }
 
     /**
+    * Optional. A method to do post processing on the result returned from calling the result of the method returned from {@link Runner#getRunnable}.
+    * Will not be called on errors.
+    * This method runs in node-space.
+    *
+    * @param {*} The result returned from the page runner
+    * @return {Promise.<*>} A promise resolving to the post-processed result
+    */
+    transformResult(result) {
+        // default implementation is identity
+        return Promise.resolve(result);
+    }
+
+    /**
     * The (local) files returned by this method are injected into the webpage before
     * the method received from {@link Runner#getRunnable} is evaluated.
     * Any global exposed by the companion files can be accessed by the method returned from {@link Runner#getRunnable}.

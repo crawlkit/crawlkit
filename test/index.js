@@ -9,8 +9,10 @@ const freeport = require('freeport');
 const auth = require('http-auth');
 const http = require('http');
 const httpProxy = require('http-proxy');
+
 const HeadlessError = require('node-phantom-simple/headless_error');
 const TimeoutError = require('callback-timeout/errors').TimeoutError;
+const TransformationError = require(path.join(__dirname, '..', 'src', 'errors.js')).TransformationError;
 
 const pkg = require(path.join(__dirname, '..', 'package.json'));
 const CrawlKit = require(path.join(__dirname, '..', pkg.main));
@@ -438,6 +440,51 @@ describe('CrawlKit', function main() {
                 },
             };
             return crawler.crawl().should.eventually.deep.equal({ results });
+        });
+
+        describe('transforming result', () =>{
+            it('should be possible', () => {
+                const crawler = new CrawlKit(url);
+
+                crawler.addRunner('transform', {
+                    getCompanionFiles: () => [],
+                    getRunnable: () => function successRunner() { window.callPhantom(null, 'success'); },
+                    transformResult: (result) => Promise.resolve(result.toUpperCase()),
+                });
+
+                const results = {};
+                results[`${url}/`] = {
+                    runners: {
+                        transform: {
+                            result: 'SUCCESS',
+                        },
+                    },
+                };
+                return crawler.crawl().should.eventually.deep.equal({ results });
+            });
+
+            it('errors should be handled', () => {
+                const crawler = new CrawlKit(url);
+
+                const err = new Error('whatevs');
+                crawler.addRunner('transform', {
+                    getCompanionFiles: () => [],
+                    getRunnable: () => function successRunner() { window.callPhantom(null, 'success'); },
+                    transformResult: () => {
+                        throw err;
+                    },
+                });
+
+                const results = {};
+                results[`${url}/`] = {
+                    runners: {
+                        transform: {
+                            error: new TransformationError(err),
+                        },
+                    },
+                };
+                return crawler.crawl().should.eventually.deep.equal({ results });
+            });
         });
 
         describe('errors', () => {
