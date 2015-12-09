@@ -12,8 +12,7 @@ const httpProxy = require('http-proxy');
 
 const HeadlessError = require('node-phantom-simple/headless_error');
 const TimeoutError = require('callback-timeout/errors').TimeoutError;
-const TransformationError = require(path.join(__dirname, '..', 'src', 'errors.js')).TransformationError;
-const StatusError = require(path.join(__dirname, '..', 'src', 'errors.js')).StatusError;
+const errors = require(path.join(__dirname, '..', 'src', 'errors.js'));
 
 const pkg = require(path.join(__dirname, '..', 'package.json'));
 const CrawlKit = require(path.join(__dirname, '..', pkg.main));
@@ -402,10 +401,10 @@ describe('CrawlKit', function main() {
         const results = {};
         results[`${url}deadlinks.html`] = {};
         results[`${url}nonexistent.html`] = {
-            error: new StatusError('Not Found', 404),
+            error: new errors.StatusError('Not Found', 404),
         };
         results[`${url}404.html`] = {
-            error: new StatusError('Not Found', 404),
+            error: new errors.StatusError('Not Found', 404),
         };
         crawler.setFinder(new GenericLinkFinder());
         return crawler.crawl().should.eventually.deep.equal({ results });
@@ -416,7 +415,7 @@ describe('CrawlKit', function main() {
 
         const results = {};
         results[`${url}custom404withHtmlAnswer`] = {
-            error: new StatusError('Not Found', 404),
+            error: new errors.StatusError('Not Found', 404),
         };
         return crawler.crawl().should.eventually.deep.equal({ results });
     });
@@ -508,7 +507,7 @@ describe('CrawlKit', function main() {
                 results[url] = {
                     runners: {
                         transform: {
-                            error: new TransformationError(err),
+                            error: new errors.TransformationError(err),
                         },
                     },
                 };
@@ -829,7 +828,7 @@ describe('CrawlKit', function main() {
             crawler.followRedirects = true;
             const results = {};
             results[redirectUrl] = {
-                error: `page for ${redirectUrl} redirected to ${targetUrl}`,
+                error: new errors.RedirectError('Redirected', targetUrl),
             };
             results[targetUrl] = {};
             return crawler.crawl().should.eventually.deep.equal({ results });

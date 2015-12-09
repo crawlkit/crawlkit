@@ -5,3 +5,6 @@ module.exports.TransformationError = defineError('TransformationError');
 module.exports.StatusError = defineError('StatusError', function statusError(statusText, code) {
     this.code = code;
 });
+module.exports.RedirectError = defineError('RedirectError', function redirectError(statusText, targetUrl) {
+    this.targetUrl = targetUrl;
+});

@@ -3,7 +3,7 @@
 const urijs = require('urijs');
 const path = require('path');
 const applyUrlFilterFn = require(path.join(__dirname, '..', '..', 'applyUrlFilterFn.js'));
-const StatusError = require(path.join(__dirname, '..', '..', 'errors.js')).StatusError;
+const errors = require(path.join(__dirname, '..', '..', 'errors.js'));
 const once = require('once');
 
 module.exports = (scope, logger, addUrl, followRedirects, redirectFilter) => {
@@ -27,7 +27,7 @@ module.exports = (scope, logger, addUrl, followRedirects, redirectFilter) => {
                         if (state === false) {
                             done(`URL ${redirectedToUrl} was not followed`, scope);
                         } else {
-                            done(`page for ${scope.url} redirected to ${redirectedToUrl}`, scope);
+                            done(new errors.RedirectError('Redirected', redirectedToUrl), scope);
                         }
                     } catch (e) {
                         logger.debug(`Error on redirect filter (${redirectedToUrl}, ${scope.url})`);
@@ -40,7 +40,7 @@ module.exports = (scope, logger, addUrl, followRedirects, redirectFilter) => {
         scope.page.onResourceReceived = (res) => {
             if (urijs(scope.url).equals(res.url) && parseInt(res.status, 10) >= 400) {
                 // main page returned with a 4XX or higher
-                done(new StatusError(res.statusText, res.status));
+                done(new errors.StatusError(res.statusText, res.status));
                 return;
             }
         };
