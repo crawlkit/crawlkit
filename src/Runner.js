@@ -34,7 +34,7 @@ class Runner extends Runnable {
     * Will not be called on errors.
     * This method runs in node-space.
     *
-    * @param {*} The result returned from the page runner
+    * @param {*} result The result returned from the page runner
     * @return {Promise.<*>} A promise resolving to the post-processed result
     */
     transformResult(result) {
