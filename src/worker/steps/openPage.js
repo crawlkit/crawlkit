@@ -3,6 +3,7 @@
 const urijs = require('urijs');
 const path = require('path');
 const applyUrlFilterFn = require(path.join(__dirname, '..', '..', 'applyUrlFilterFn.js'));
+const StatusError = require(path.join(__dirname, '..', '..', 'errors.js')).StatusError;
 const once = require('once');
 
 module.exports = (scope, logger, addUrl, followRedirects, redirectFilter) => {
@@ -33,6 +34,12 @@ module.exports = (scope, logger, addUrl, followRedirects, redirectFilter) => {
                         done(e);
                     }
                 }
+            }
+        };
+
+        scope.page.onResourceReceived = (res) => {
+            if (parseInt(res.status, 10) >= 400) {
+                done(new StatusError(res.statusText, res.status));
             }
         };
 
