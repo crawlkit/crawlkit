@@ -470,7 +470,7 @@ describe('CrawlKit', function main() {
             return crawler.crawl().should.eventually.deep.equal({ results });
         });
 
-        describe('transforming result', () =>{
+        describe('transforming result', () => {
             it('should be possible', () => {
                 const crawler = new CrawlKit(url);
 
