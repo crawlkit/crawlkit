@@ -376,11 +376,11 @@ class CrawlKit {
                                     // take no chances - if there was an error on Phantom side, we should get rid of the instance
                                     workerLogger.info(`Notifying pool to destroy Phantom instance.`);
                                     pool.destroy(scope.browser);
-                                    scope.browser = null;
                                 } else {
                                     workerLogger.debug(`Phantom released to pool.`);
                                     pool.release(scope.browser);
                                 }
+                                scope.browser = null;
                             }
                             stopWorkerTimer();
                             if (err instanceof HeadlessError || err instanceof TimeoutError) {
