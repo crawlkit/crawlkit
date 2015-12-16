@@ -1046,7 +1046,10 @@ describe('CrawlKit', function main() {
             stream.on('data', (data) => {
                 streamed += data;
             });
-            stream.on('end', () => {
+            const endSpy = sinon.spy();
+            stream.on('end', endSpy);
+            stream.on('close', () => {
+                endSpy.should.be.calledBefore(this);
                 JSON.parse(streamed).should.deep.equal(results);
                 done();
             });
