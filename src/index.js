@@ -368,17 +368,20 @@ class CrawlKit {
                             }
 
                             if (scope.page) {
-                                workerLogger.debug(`Page closed.`);
+                                workerLogger.debug(`Attempting to close page.`);
                                 scope.page.close();
+                                workerLogger.debug(`Page closed.`);
                             }
                             if (scope.browser) {
                                 if (err instanceof HeadlessError) {
                                     // take no chances - if there was an error on Phantom side, we should get rid of the instance
                                     workerLogger.info(`Notifying pool to destroy Phantom instance.`);
                                     pool.destroy(scope.browser);
+                                    workerLogger.debug(`Phantom instance destroyed.`);
                                 } else {
-                                    workerLogger.debug(`Phantom released to pool.`);
+                                    workerLogger.debug(`Attempting to release Phantom instance.`);
                                     pool.release(scope.browser);
+                                    workerLogger.debug(`Phantom instance released to pool.`);
                                 }
                                 scope.browser = null;
                             }
@@ -413,11 +416,12 @@ class CrawlKit {
 
                 q.drain = () => {
                     logger.debug('Queue empty. Stopping crawler timer.');
-
                     stopCrawlTimer();
+
                     logger.debug('Draining pool.');
                     pool.drain(() => pool.destroyAllNow());
 
+                    logger.debug('Finishing up.');
                     if (shouldStream) {
                         stream.end();
                         resolve();
