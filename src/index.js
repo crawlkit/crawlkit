@@ -418,8 +418,10 @@ class CrawlKit {
                     logger.debug('Queue empty. Stopping crawler timer.');
                     stopCrawlTimer();
 
-                    logger.debug('Draining pool.');
-                    pool.drain(() => pool.destroyAllNow());
+                    setImmediate(() => {
+                        logger.debug('Draining pool.');
+                        pool.drain(() => pool.destroyAllNow());
+                    });
 
                     logger.debug('Finishing up.');
                     if (shouldStream) {
