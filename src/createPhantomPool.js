@@ -10,7 +10,6 @@ module.exports = (logger, concurrency, phantomParameters, browserCookies) => {
     const poolDebug = {};
 
     return poolModule.Pool({ // eslint-disable-line
-        name: 'phantomjs',
         create: (callback) => {
             async.waterfall([
                 function createPhantom(done) {
