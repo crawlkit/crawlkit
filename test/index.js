@@ -9,6 +9,7 @@ const freeport = require('freeport');
 const auth = require('http-auth');
 const http = require('http');
 const httpProxy = require('http-proxy');
+const phantomjs = require('phantomjs');
 
 const HeadlessError = require('node-phantom-simple/headless_error');
 const TimeoutError = require('callback-timeout/errors').TimeoutError;
@@ -118,6 +119,27 @@ describe('CrawlKit', function main() {
             const crawler = new CrawlKit(url);
             const results = {};
             results[url] = {};
+            return crawler.crawl().should.eventually.deep.equal({ results });
+        });
+
+        it('and identify itself properly', () => {
+            const crawler = new CrawlKit(url);
+            crawler.addRunner('userAgent', {
+                getCompanionFiles: () => [],
+                getRunnable: () => {
+                    return function getUserAgent() {
+                        window.callPhantom(null, navigator.userAgent);
+                    };
+                },
+            });
+            const results = {};
+            results[url] = {
+                runners: {
+                    userAgent: {
+                        result: `CrawlKit/${pkg.version} (PhantomJS/${phantomjs.version})`,
+                    },
+                },
+            };
             return crawler.crawl().should.eventually.deep.equal({ results });
         });
 

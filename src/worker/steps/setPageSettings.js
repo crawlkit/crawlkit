@@ -1,7 +1,15 @@
+'use strict'; // eslint-disable-line
+const path = require('path');
+const pkg = require(path.join(__dirname, '..', '..', '..', 'package.json'));
+const phantomjs = require('phantomjs');
+
 module.exports = (scope, logger, phantomPageSettings, followRedirects) => {
     return (done) => {
         logger.debug('Setting page settings');
-        const settingsToSet = Object.assign({}, phantomPageSettings);
+        const settingsToSet = Object.assign({
+            'settings.userAgent': `CrawlKit/${pkg.version} (PhantomJS/${phantomjs.version})`,
+        }, phantomPageSettings);
+
         if (!followRedirects) {
             // TODO: fix - enabling the next line currently stalls PhantomJS
             // but it is needed to prevent redirects when redirects are not
