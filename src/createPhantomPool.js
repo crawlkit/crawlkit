@@ -53,7 +53,6 @@ module.exports = (logger, concurrency, phantomParameters, browserCookies) => {
         },
         refreshIdle: false,
         max: concurrency,
-        min: 1,
         log: (message, level) => {
             poolDebug[level] = poolDebug[level] || debug(`crawlkit:pool:phantomjs:${level}`);
             poolDebug[level](message);
