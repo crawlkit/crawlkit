@@ -131,14 +131,28 @@ describe('CrawlKit', function main() {
             return crawler.crawl().should.eventually.be.rejected;
         });
 
-        it('should time out', () => {
-            const crawler = new CrawlKit(url);
-            crawler.timeout = 5;
-            const results = {};
-            results[url] = {
-                error: new TimeoutError('Worker timed out after 5ms.'),
-            };
-            return crawler.crawl().should.eventually.deep.equal({ results });
+        describe('worker', () => {
+            it('should time out', () => {
+                const crawler = new CrawlKit(url);
+                crawler.timeout = 5;
+                const results = {};
+                results[url] = {
+                    error: new TimeoutError('Worker timed out after 5ms.'),
+                };
+                return crawler.crawl().should.eventually.deep.equal({ results });
+            });
+
+            it('should time out and release properly', () => {
+                const crawler = new CrawlKit(url);
+                crawler.timeout = 500;
+                crawler.setFinder(new GenericLinkFinder(), 2000);
+
+                const results = {};
+                results[url] = {
+                    error: new TimeoutError('Worker timed out after 500ms.'),
+                };
+                return crawler.crawl().should.eventually.deep.equal({ results });
+            });
         });
 
         describe('with a finder', () => {
