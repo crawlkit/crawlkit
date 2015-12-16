@@ -1,7 +1,11 @@
 {
   "extends": "airbnb/base",
   "rules": {
-    "indent": [2, 4]
+    "indent": [2, 4],
+    "mocha/no-exclusive-tests": 2
   },
-  "root": true
+  "root": true,
+  "plugins": [
+    "mocha"
+  ]
 }
