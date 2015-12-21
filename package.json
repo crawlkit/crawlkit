@@ -16,7 +16,8 @@
     "audit",
     "axe",
     "htmlcs",
-    "axs"
+    "axs",
+    "crawlkit"
   ],
   "directories": {
     "example": "./examples",
