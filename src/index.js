@@ -13,6 +13,7 @@ const NanoTimer = require('nanotimer');
 const Chance = require('chance');
 const JSONStream = require('JSONStream');
 const createPhantomPool = require('./createPhantomPool.js');
+const juration = require('juration');
 
 const step = {
     acquireBrowser: require('./worker/steps/acquireBrowser.js'),
@@ -409,8 +410,8 @@ class CrawlKit {
                             step.findLinks(scope, workerLogger, getFinder(this), getFinderParameters(this), addUrl),
                             step.pageRunners(scope, workerLogger, getRunners(this), workerLogPrefix),
                         ], workerFinished);
-                    }, '', 'm', (workerRuntime) => {
-                        workerLogger.info('Finished. Took %sms.', workerRuntime);
+                    }, '', 's', (workerRuntime) => {
+                        workerLogger.info(`Finished. Took ${juration.stringify(workerRuntime) || 'less than a second'}.`);
                     });
                 }, this.concurrency);
 
@@ -459,7 +460,7 @@ class CrawlKit {
 
                 addUrl(this.url);
             }, '', 's', (time) => {
-                logger.info(`Finished. Processed ${seen.size} discovered URLs. Took ${time}s.`);
+                logger.info(`Finished. Processed ${seen.size} discovered URLs. Took ${juration.stringify(time) || 'less than a second'}.`);
             });
         });
         if (shouldStream) {
