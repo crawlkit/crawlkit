@@ -45,12 +45,8 @@ module.exports = (scope, logger, runners, workerLogPrefix) => {
             const parameters = runnerObj.parameters;
 
             const runnerLogPrefix = `${workerLogPrefix}:runner(${runnerId})`;
-            const runnerLogger = {
-                console: debug(`${runnerLogPrefix}:console:debug`),
-                info: debug(`${runnerLogPrefix}:info`),
-                debug: debug(`${runnerLogPrefix}:debug`),
-                error: debug(`${runnerLogPrefix}:error`),
-            };
+            const runnerLogger = require('../../logger')(runnerLogPrefix);
+            runnerLogger.console = debug(`${runnerLogPrefix}:console:debug`);
 
             const timeout = runner.timeout || Runner.DEFAULT_TIMEOUT;
             const doneAndNext = callbackTimeout(once((res) => {
