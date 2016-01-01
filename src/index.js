@@ -4,7 +4,7 @@ const HeadlessError = require('node-phantom-simple/headless_error');
 const TimeoutError = require('callback-timeout/errors').TimeoutError;
 
 const async = require('async');
-const debug = require('debug');
+const logger = require('./logger')('crawlkit');
 const urijs = require('urijs');
 const once = require('once');
 const callbackTimeout = require('callback-timeout');
@@ -22,12 +22,6 @@ const step = {
     openPage: require('./worker/steps/openPage.js'),
     findLinks: require('./worker/steps/findLinks.js'),
     pageRunners: require('./worker/steps/pageRunners.js'),
-};
-
-const logger = {
-    debug: debug('crawlkit:debug'),
-    info: debug('crawlkit:info'),
-    error: debug('crawlkit:error'),
 };
 
 const concurrencyKey = Symbol();
@@ -353,11 +347,7 @@ class CrawlKit {
                 const q = async.queue((scope, queueItemFinished) => {
                     scope.tries++;
                     const workerLogPrefix = `crawlkit:task(${scope.id})`;
-                    const workerLogger = {
-                        debug: debug(`${workerLogPrefix}:debug`),
-                        info: debug(`${workerLogPrefix}:info`),
-                        error: debug(`${workerLogPrefix}:error`),
-                    };
+                    const workerLogger = require('./logger')(workerLogPrefix);
 
                     logger.info(`Worker started - ${q.length()} task(s) left in the queue.`);
                     workerLogger.info(`Took ${scope.url} from queue` + (scope.tries > 1 ? ` (attempt ${scope.tries})` : '') + '.');
