@@ -25,6 +25,7 @@ const genericLinkFinder = require('../finders/genericAnchors.js');
 chai.should();
 chai.use(chaiAsPromised);
 chai.use(sinonChai);
+const expect = chai.expect;
 
 const basic = auth.basic({
     realm: 'Restricted area',
@@ -1078,19 +1079,11 @@ describe('CrawlKit', function main() {
         });
 
         it('should error if no URL was given', () => {
-            function x() {
-                const crawler = new CrawlKit();
-                crawler.crawl(true);
-            }
-            chai.expect(x).to.throw(errors.InvalidUrlError);
+            expect(() => new CrawlKit().crawl(true)).to.throw(errors.InvalidUrlError);
         });
 
         it('should error if erroneous URL was given', () => {
-            function x() {
-                const crawler = new CrawlKit('mailto:bla@bla');
-                crawler.crawl(true);
-            }
-            chai.expect(x).to.throw(errors.InvalidUrlError);
+            expect(() => new CrawlKit('mailto:bla@bla').crawl(true)).to.throw(errors.InvalidUrlError);
         });
     });
 });
