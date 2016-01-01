@@ -453,9 +453,8 @@ class CrawlKit {
                 logger.error(err);
                 throw err;
             });
-            return stream;
         }
-        return promise;
+        return shouldStream ? stream : promise;
     }
 }
 
