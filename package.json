@@ -27,7 +27,8 @@
     "docs": "jsdoc -c conf.json",
     "test": "mocha",
     "lint": "eslint .",
-    "tdd": "mocha --watch --reporter dot"
+    "tdd": "mocha --watch --reporter dot",
+    "validate": "npm ls"
   },
   "files": [
     "src",
@@ -63,11 +64,16 @@
     "http-proxy": "^1.12.0",
     "jsdoc": "^3.4.0",
     "mocha": "^2.3.4",
+    "precommit-hook": "latest",
     "sinon": "^1.17.2",
     "sinon-chai": "^2.8.0"
   },
   "engines": {
     "node": ">=4.2"
   },
-  "tonicExampleFilename": "examples/tonic.js"
+  "tonicExampleFilename": "examples/tonic.js",
+  "pre-commit": [
+    "lint",
+    "validate"
+  ]
 }
