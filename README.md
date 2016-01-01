@@ -4,7 +4,7 @@
 [![npm](https://img.shields.io/npm/l/crawlkit.svg)]()
 [![David](https://img.shields.io/david/crawlkit/crawlkit.svg)]()
 [![node](https://img.shields.io/node/v/crawlkit.svg)]()
-[![bitHound Code](https://www.bithound.io/github/crawlkit/crawlkit/badges/code.svg)](https://www.bithound.io/github/crawlkit/crawlkit)
+[![bitHound Overall Score](https://www.bithound.io/github/crawlkit/crawlkit/badges/score.svg)](https://www.bithound.io/github/crawlkit/crawlkit)
 
 A crawler based on PhantomJS. Allows discovery of dynamic content and supports custom scrapers. For all your ajaxy crawling & scraping needs.
 
