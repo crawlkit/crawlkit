@@ -439,10 +439,7 @@ class CrawlKit {
                         stream.end();
                         resolve();
                     } else {
-                        const result = {
-                            results: transformMapToObject(seen),
-                        };
-                        resolve(result);
+                        resolve({ results: transformMapToObject(seen) });
                     }
                 };
 
