@@ -9,7 +9,7 @@ const debug = require('debug');
 module.exports = (logger, concurrency, phantomParameters, browserCookies) => {
     const poolDebug = {};
 
-    return poolModule.Pool({ // eslint-disable-line
+    return poolModule.Pool({ // eslint-disable-line new-cap
         create: (callback) => {
             async.waterfall([
                 function createPhantom(done) {
