@@ -7,16 +7,15 @@ const async = require('async');
 const urijs = require('urijs');
 const once = require('once');
 const callbackTimeout = require('callback-timeout');
-const NanoTimer = require('nanotimer');
 const Chance = require('chance');
 const JSONStream = require('JSONStream');
-const juration = require('juration');
 
 const createPhantomPool = require('./createPhantomPool.js');
 const immediateStopDecorator = require('./worker/immediateStopDecorator');
 const cloneScope = require('./cloneScope');
 const transformMapToObject = require('./transformMapToObject');
 const step = require('./worker/loadSteps');
+const timedRun = require('./timedRun');
 
 const concurrencyKey = Symbol();
 const urlKey = Symbol();
@@ -335,12 +334,14 @@ class CrawlKit {
         logger.info(`Starting to crawl. Concurrent PhantomJS browsers: ${this.concurrency}.`);
         const pool = createPhantomPool(logger, this.concurrency, this.phantomParameters, this.browserCookies, prefix);
 
-        const promise = new Promise((resolve) => {
-            if (!this.url) {
-                throw new Error(`Defined url '${this.url}' is not valid.`);
-            }
-            const seen = new Map();
-            new NanoTimer().time((stopCrawlTimer) => {
+        let promise;
+        const crawl = (stopCrawlTimer) => {
+            promise = new Promise((resolve) => {
+                if (!this.url) {
+                    throw new Error(`Defined url '${this.url}' is not valid.`);
+                }
+                const seen = new Map();
+
                 let addUrl;
                 const q = async.queue((scope, queueItemFinished) => {
                     scope.tries++;
@@ -349,7 +350,7 @@ class CrawlKit {
 
                     logger.info(`Worker started - ${q.length()} task(s) left in the queue.`);
                     workerLogger.info(`Took ${scope.url} from queue` + (scope.tries > 1 ? ` (attempt ${scope.tries})` : '') + '.');
-                    new NanoTimer().time((stopWorkerTimer) => {
+                    const work = (stopWorkerTimer) => {
                         const workerFinished = callbackTimeout(once((err) => {
                             scope.stop = true;
                             if (err) {
@@ -398,14 +399,12 @@ class CrawlKit {
                             immediateStopDecorator(scope, step.findLinks(scope, workerLogger, getFinder(this), getFinderParameters(this), addUrl)),
                             immediateStopDecorator(scope, step.pageRunners(scope, workerLogger, getRunners(this), workerLogPrefix)),
                         ], workerFinished);
-                    }, '', 's', (workerRuntime) => {
-                        workerLogger.info(`Finished. Took ${juration.stringify(workerRuntime) || 'less than a second'}.`);
-                    });
+                    };
+                    timedRun(workerLogger, work);
                 }, this.concurrency);
 
                 q.drain = () => {
-                    logger.debug('Queue empty. Stopping crawler timer.');
-                    stopCrawlTimer();
+                    logger.debug(`Processed ${seen.size} discovered URLs.`);
 
                     setImmediate(() => {
                         logger.debug('Draining pool.');
@@ -417,7 +416,9 @@ class CrawlKit {
                         stream.end();
                         resolve();
                     } else {
-                        resolve({ results: transformMapToObject(seen) });
+                        resolve({
+                            results: transformMapToObject(seen),
+                        });
                     }
                 };
 
@@ -445,10 +446,12 @@ class CrawlKit {
                 };
 
                 addUrl(this.url);
-            }, '', 's', (time) => {
-                logger.info(`Finished. Processed ${seen.size} discovered URLs. Took ${juration.stringify(time) || 'less than a second'}.`);
             });
-        });
+            promise.then(stopCrawlTimer);
+        };
+
+        timedRun(logger, crawl);
+
         if (shouldStream) {
             promise.catch((err) => {
                 logger.error(err);
