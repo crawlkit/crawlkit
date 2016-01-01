@@ -16,15 +16,7 @@ const juration = require('juration');
 const immediateStopDecorator = require('./worker/immediateStopDecorator');
 const cloneScope = require('./cloneScope');
 const transformMapToObject = require('./transformMapToObject');
-
-const step = {
-    acquireBrowser: require('./worker/steps/acquireBrowser.js'),
-    setPageSettings: require('./worker/steps/setPageSettings.js'),
-    createPage: require('./worker/steps/createPage.js'),
-    openPage: require('./worker/steps/openPage.js'),
-    findLinks: require('./worker/steps/findLinks.js'),
-    pageRunners: require('./worker/steps/pageRunners.js'),
-};
+const step = require('./worker/loadSteps');
 
 const concurrencyKey = Symbol();
 const urlKey = Symbol();

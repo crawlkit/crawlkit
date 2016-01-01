@@ -45,6 +45,7 @@
     "debug": "^2.2.0",
     "define-error": "^1.1.0",
     "generic-pool": "^2.2.2",
+    "glob": "^6.0.3",
     "juration": "0.0.1",
     "nanotimer": "^0.3.13",
     "node-phantom-simple": "^2.2.2",
