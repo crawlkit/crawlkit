@@ -334,9 +334,8 @@ class CrawlKit {
         logger.info(`Starting to crawl. Concurrent PhantomJS browsers: ${this.concurrency}.`);
         const pool = createPhantomPool(logger, this.concurrency, this.phantomParameters, this.browserCookies, prefix);
 
-        let promise;
-        const crawl = (stopCrawlTimer) => {
-            promise = new Promise((resolve) => {
+        const promise = new Promise((resolve) => {
+            timedRun(logger, (stopCrawlTimer) => {
                 if (!this.url) {
                     throw new Error(`Defined url '${this.url}' is not valid.`);
                 }
@@ -350,7 +349,7 @@ class CrawlKit {
 
                     logger.info(`Worker started - ${q.length()} task(s) left in the queue.`);
                     workerLogger.info(`Took ${scope.url} from queue` + (scope.tries > 1 ? ` (attempt ${scope.tries})` : '') + '.');
-                    const work = (stopWorkerTimer) => {
+                    timedRun(workerLogger, (stopWorkerTimer) => {
                         const workerFinished = callbackTimeout(once((err) => {
                             scope.stop = true;
                             if (err) {
@@ -399,12 +398,12 @@ class CrawlKit {
                             immediateStopDecorator(scope, step.findLinks(scope, workerLogger, getFinder(this), getFinderParameters(this), addUrl)),
                             immediateStopDecorator(scope, step.pageRunners(scope, workerLogger, getRunners(this), workerLogPrefix)),
                         ], workerFinished);
-                    };
-                    timedRun(workerLogger, work);
+                    });
                 }, this.concurrency);
 
                 q.drain = () => {
                     logger.debug(`Processed ${seen.size} discovered URLs.`);
+                    stopCrawlTimer();
 
                     setImmediate(() => {
                         logger.debug('Draining pool.');
@@ -447,10 +446,7 @@ class CrawlKit {
 
                 addUrl(this.url);
             });
-            promise.then(stopCrawlTimer);
-        };
-
-        timedRun(logger, crawl);
+        });
 
         if (shouldStream) {
             promise.catch((err) => {
