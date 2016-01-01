@@ -6,7 +6,7 @@ const driver = require('node-phantom-simple');
 const phantomjs = require('phantomjs');
 const debug = require('debug');
 
-module.exports = (logger, concurrency, phantomParameters, browserCookies) => {
+module.exports = (logger, concurrency, phantomParameters, browserCookies, prefix) => {
     const poolDebug = {};
 
     return poolModule.Pool({ // eslint-disable-line new-cap
@@ -54,7 +54,7 @@ module.exports = (logger, concurrency, phantomParameters, browserCookies) => {
         refreshIdle: false,
         max: concurrency,
         log: (message, level) => {
-            poolDebug[level] = poolDebug[level] || debug(`crawlkit:pool:phantomjs:${level}`);
+            poolDebug[level] = poolDebug[level] || debug(`${prefix}:pool:phantomjs:${level}`);
             poolDebug[level](message);
         },
     });
