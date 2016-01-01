@@ -351,7 +351,7 @@ class CrawlKit {
     */
     crawl(shouldStream) {
         const stream = shouldStream ? JSONStream.stringifyObject() : null;
-        const prefix = 'crawlkit' + (this.name ? `(${this.name})` : '');
+        const prefix = 'crawlkit' + (this.name ? `:${this.name}` : '');
         const logger = require('./logger')(prefix);
 
         logger.info(`Starting to crawl. Concurrent PhantomJS browsers: ${this.concurrency}.`);
