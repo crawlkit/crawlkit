@@ -4,7 +4,6 @@ const HeadlessError = require('node-phantom-simple/headless_error');
 const TimeoutError = require('callback-timeout/errors').TimeoutError;
 
 const async = require('async');
-const logger = require('./logger')('crawlkit');
 const urijs = require('urijs');
 const once = require('once');
 const callbackTimeout = require('callback-timeout');
@@ -85,11 +84,15 @@ class CrawlKit {
     * Create a CrawlKit instance
     * @constructor
     * @param {String} [url] The start URL. Sets the {@link CrawlKit#url}.
+    * @param {String} [name] The instance name of the crawler. Used for logging purposes.
     * @return {CrawlKit} a new CrawlKit instance
     */
-    constructor(url) {
+    constructor(url, name) {
         if (url) {
             this.url = url;
+        }
+        if (name) {
+            this.name = name;
         }
         this[runnerKey] = new Map();
         this[finderKey] = {};
@@ -329,13 +332,12 @@ class CrawlKit {
     * @return {(Stream|Promise.<Object>)} By default a Promise object is returned that resolves to the result. If streaming is enabled it returns a JSON stream of the results.
     */
     crawl(shouldStream) {
-        let stream;
-        if (shouldStream) {
-            stream = JSONStream.stringifyObject();
-        }
+        const stream = shouldStream ? JSONStream.stringifyObject() : null;
+        const prefix = 'crawlkit' + (this.name ? `(${this.name})` : '');
+        const logger = require('./logger')(prefix);
 
         logger.info(`Starting to crawl. Concurrent PhantomJS browsers: ${this.concurrency}.`);
-        const pool = createPhantomPool(logger, this.concurrency, this.phantomParameters, this.browserCookies);
+        const pool = createPhantomPool(logger, this.concurrency, this.phantomParameters, this.browserCookies, prefix);
 
         const promise = new Promise((resolve) => {
             if (!this.url) {
@@ -346,7 +348,7 @@ class CrawlKit {
                 let addUrl;
                 const q = async.queue((scope, queueItemFinished) => {
                     scope.tries++;
-                    const workerLogPrefix = `crawlkit:task(${scope.id})`;
+                    const workerLogPrefix = `${prefix}:task(${scope.id})`;
                     const workerLogger = require('./logger')(workerLogPrefix);
 
                     logger.info(`Worker started - ${q.length()} task(s) left in the queue.`);
