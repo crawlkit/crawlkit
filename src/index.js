@@ -9,7 +9,7 @@ const TimeoutError = require('callback-timeout/errors').TimeoutError;
 
 const createPhantomPool = require('./createPhantomPool.js');
 const cloneScope = require('./cloneScope');
-const transformMapToObject = require('./transformMapToObject');
+const mapToObject = require('./mapToObject');
 const timedRun = require('./timedRun');
 const worker = require('./worker');
 
@@ -293,93 +293,84 @@ class CrawlKit {
         const stream = shouldStream ? JSONStream.stringifyObject() : null;
         const prefix = 'crawlkit' + (this.name ? `:${this.name}` : '');
         const logger = require('./logger')(prefix);
+        const seen = new Map();
 
         logger.info(`Starting to crawl. Concurrent PhantomJS browsers: ${this.concurrency}.`);
         const pool = createPhantomPool(logger, this.concurrency, this.phantomParameters, this.browserCookies, prefix);
 
-        const promise = new Promise((resolve) => {
-            timedRun(logger, (stopCrawlTimer) => {
-                if (!this.url) {
-                    throw new Error(`Defined url '${this.url}' is not valid.`);
-                }
-                const seen = new Map();
+        const writeResult = (scope) => {
+            if (stream) {
+                stream.write([scope.url, scope.result]);
+            } else {
+                seen.set(scope.url, scope.result);
+            }
+        };
 
-                let q;
-                const addUrl = (u) => {
-                    let url = urijs(u);
-                    url = url.absoluteTo(defaultAbsoluteTo);
-                    url.normalize();
-                    url = url.toString();
+        const work = timedRun(logger, (done) => {
+            if (!this.url) {
+                throw new Error(`Defined url '${this.url}' is not valid.`);
+            }
 
-                    if (!seen.has(url)) {
-                        logger.info(`Adding ${url}`);
-                        const result = {};
-                        // don't keep result in memory if we stream
-                        seen.set(url, shouldStream ? null : result);
-                        const scope = {
-                            tries: 0,
-                            stop: false,
-                            url,
-                            result,
-                            id: new Chance().name(),
-                        };
-                        q.push(scope);
-                        logger.info(`${q.length()} task(s) in the queue.`);
-                    } else {
-                        logger.debug(`Skipping ${url} - already seen.`);
-                    }
-                };
+            let q;
+            const addUrl = (u) => {
+                let url = urijs(u);
+                url = url.absoluteTo(defaultAbsoluteTo);
+                url.normalize();
+                url = url.toString();
 
-                const processResult = (scope, err) => {
-                    if (err instanceof HeadlessError || err instanceof TimeoutError) {
-                        if (scope.tries < this.tries) {
-                            logger.info(`Retrying ${scope.url} - adding back to queue.`);
-                            q.unshift(cloneScope(scope));
-                            return;
-                        }
-                        logger.info(`Tried to crawl ${scope.url} ${scope.tries} times. Giving up.`);
-                    }
-                    if (shouldStream) {
-                        stream.write([scope.url, scope.result]);
-                    }
-                };
-
-                q = async.queue(
-                    worker(this, runnerKey, finderKey, prefix, pool, addUrl, processResult),
-                    this.concurrency
-                );
-
-                q.drain = () => {
-                    logger.debug(`Processed ${seen.size} discovered URLs.`);
-                    stopCrawlTimer();
-
-                    setImmediate(() => {
-                        logger.debug('Draining pool.');
-                        pool.drain(() => pool.destroyAllNow());
+                if (!seen.has(url)) {
+                    logger.info(`Adding ${url}`);
+                    seen.set(url, null);
+                    q.push({
+                        tries: 0,
+                        stop: false,
+                        url,
+                        result: {},
+                        id: new Chance().name(),
                     });
+                    logger.info(`${q.length()} task(s) in the queue.`);
+                } else {
+                    logger.debug(`Skipping ${url} - already seen.`);
+                }
+            };
 
-                    logger.debug('Finishing up.');
-                    if (shouldStream) {
-                        stream.end();
-                        resolve();
-                    } else {
-                        resolve({
-                            results: transformMapToObject(seen),
-                        });
+            const processResult = (scope, err) => {
+                if (err instanceof HeadlessError || err instanceof TimeoutError) {
+                    if (scope.tries < this.tries) {
+                        logger.info(`Retrying ${scope.url} - adding back to queue.`);
+                        q.unshift(cloneScope(scope));
+                        return;
                     }
-                };
+                    logger.info(`Tried to crawl ${scope.url} ${scope.tries} times. Giving up.`);
+                }
+                writeResult(scope);
+            };
 
-                addUrl(this.url);
-            });
+            q = async.queue(
+                worker(this, runnerKey, finderKey, prefix, pool, addUrl, processResult),
+                this.concurrency
+            );
+
+            q.drain = () => {
+                logger.debug(`Processed ${seen.size} discovered URLs.`);
+
+                setImmediate(() => {
+                    logger.debug('Draining pool.');
+                    pool.drain(() => pool.destroyAllNow());
+                });
+                done();
+            };
+
+            addUrl(this.url);
         });
 
-        if (shouldStream) {
-            promise.catch((err) => {
-                logger.error(err);
-                throw err;
-            });
+        if (stream) {
+            work(() => stream.end());
+            return stream;
         }
-        return shouldStream ? stream : promise;
+        return new Promise((resolve) => {
+            work(() => resolve({ results: mapToObject(seen) }));
+        });
     }
 }
 

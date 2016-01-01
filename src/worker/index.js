@@ -53,7 +53,7 @@ module.exports = (crawlerInstance, runnerKey, finderKey, prefix, pool, addUrl, p
         const workerLogger = logger(workerLogPrefix);
 
         workerLogger.info(`Took ${scope.url} from queue` + (scope.tries > 1 ? ` (attempt ${scope.tries})` : '') + '.');
-        timedRun(workerLogger, (stopWorkerTimer) => {
+        timedRun(workerLogger, (done) => {
             const workerFinished = callbackTimeout(once((err) => {
                 scope.stop = true;
                 if (err) {
@@ -79,9 +79,8 @@ module.exports = (crawlerInstance, runnerKey, finderKey, prefix, pool, addUrl, p
                     }
                     scope.browser = null;
                 }
-                stopWorkerTimer();
                 processResult(scope, err);
-                queueItemFinished();
+                done();
             }), crawlerInstance.timeout, `Worker timed out after ${crawlerInstance.timeout}ms.`);
 
             async.waterfall([
@@ -92,6 +91,6 @@ module.exports = (crawlerInstance, runnerKey, finderKey, prefix, pool, addUrl, p
                 immediateStopDecorator(scope, step.findLinks(scope, workerLogger, getFinder(), getFinderParameters(), addUrl)),
                 immediateStopDecorator(scope, step.pageRunners(scope, workerLogger, getRunners(), workerLogPrefix)),
             ], workerFinished);
-        });
+        })(queueItemFinished);
     };
 };
