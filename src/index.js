@@ -1,17 +1,7 @@
 'use strict'; // eslint-disable-line
 
-const async = require('async');
-const urijs = require('urijs');
-const Chance = require('chance');
 const JSONStream = require('JSONStream');
-const HeadlessError = require('node-phantom-simple/headless_error');
-const TimeoutError = require('callback-timeout/errors').TimeoutError;
-
-const createPhantomPool = require('./createPhantomPool.js');
-const cloneScope = require('./cloneScope');
-const mapToObject = require('./mapToObject');
-const timedRun = require('./timedRun');
-const worker = require('./worker');
+const crawl = require('./crawl');
 
 const concurrencyKey = Symbol();
 const urlKey = Symbol();
@@ -24,14 +14,6 @@ const followRedirectsKey = Symbol();
 const browserCookiesKey = Symbol();
 const triesKey = Symbol();
 const redirectFilterKey = Symbol();
-
-/**
- * The protocol a URL without a protocol is written to.
- *
- * @private
- * @type {String}
- */
-const defaultAbsoluteTo = 'http://';
 
 /**
  * The CrawlKit base class. This is where the magic happens.
@@ -290,86 +272,18 @@ class CrawlKit {
      * @return {(Stream|Promise.<Object>)} By default a Promise object is returned that resolves to the result. If streaming is enabled it returns a JSON stream of the results.
      */
     crawl(shouldStream) {
-        const stream = shouldStream ? JSONStream.stringifyObject() : null;
-        const prefix = 'crawlkit' + (this.name ? `:${this.name}` : '');
-        const logger = require('./logger')(prefix);
-        const seen = new Map();
-
-        logger.info(`Starting to crawl. Concurrent PhantomJS browsers: ${this.concurrency}.`);
-        const pool = createPhantomPool(logger, this.concurrency, this.phantomParameters, this.browserCookies, prefix);
-
-        const writeResult = (scope) => {
-            if (stream) {
+        if (shouldStream) {
+            const stream = JSONStream.stringifyObject();
+            crawl(this, (scope) => {
                 stream.write([scope.url, scope.result]);
-            } else {
-                seen.set(scope.url, scope.result);
-            }
-        };
-
-        const work = timedRun(logger, (done) => {
-            if (!this.url) {
-                throw new Error(`Defined url '${this.url}' is not valid.`);
-            }
-
-            let q;
-            const addUrl = (u) => {
-                let url = urijs(u);
-                url = url.absoluteTo(defaultAbsoluteTo);
-                url.normalize();
-                url = url.toString();
-
-                if (!seen.has(url)) {
-                    logger.info(`Adding ${url}`);
-                    seen.set(url, null);
-                    q.push({
-                        tries: 0,
-                        stop: false,
-                        url,
-                        result: {},
-                        id: new Chance().name(),
-                    });
-                    logger.info(`${q.length()} task(s) in the queue.`);
-                } else {
-                    logger.debug(`Skipping ${url} - already seen.`);
-                }
-            };
-
-            const processResult = (scope, err) => {
-                if (err instanceof HeadlessError || err instanceof TimeoutError) {
-                    if (scope.tries < this.tries) {
-                        logger.info(`Retrying ${scope.url} - adding back to queue.`);
-                        q.unshift(cloneScope(scope));
-                        return;
-                    }
-                    logger.info(`Tried to crawl ${scope.url} ${scope.tries} times. Giving up.`);
-                }
-                writeResult(scope);
-            };
-
-            q = async.queue(
-                worker(this, runnerKey, finderKey, prefix, pool, addUrl, processResult),
-                this.concurrency
-            );
-
-            q.drain = () => {
-                logger.debug(`Processed ${seen.size} discovered URLs.`);
-
-                setImmediate(() => {
-                    logger.debug('Draining pool.');
-                    pool.drain(() => pool.destroyAllNow());
-                });
-                done();
-            };
-
-            addUrl(this.url);
-        });
-
-        if (stream) {
-            work(() => stream.end());
+            }, runnerKey, finderKey)(() => stream.end());
             return stream;
         }
         return new Promise((resolve) => {
-            work(() => resolve({ results: mapToObject(seen) }));
+            const results = {};
+            crawl(this, (scope) => {
+                results[scope.url] = scope.result;
+            }, runnerKey, finderKey)(() => resolve({ results }));
         });
     }
 }
