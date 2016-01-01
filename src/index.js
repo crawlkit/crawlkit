@@ -7,12 +7,12 @@ const async = require('async');
 const urijs = require('urijs');
 const once = require('once');
 const callbackTimeout = require('callback-timeout');
-
 const NanoTimer = require('nanotimer');
 const Chance = require('chance');
 const JSONStream = require('JSONStream');
-const createPhantomPool = require('./createPhantomPool.js');
 const juration = require('juration');
+
+const createPhantomPool = require('./createPhantomPool.js');
 const immediateStopDecorator = require('./worker/immediateStopDecorator');
 const cloneScope = require('./cloneScope');
 const transformMapToObject = require('./transformMapToObject');
