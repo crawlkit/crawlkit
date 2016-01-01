@@ -52,17 +52,33 @@ function transformMapToObject(map) {
 
 /**
 * Gets a finder definition of a {@link CrawlKit} instance.
+*
 * @private
+* @param {!CrawlKit} crawlerInstance The {@link CrawlKit} instance.
 * @return {Finder} the finder instance set via {@link CrawlKit#setFinder}.
 */
 function getFinder(crawlerInstance) {
     return crawlerInstance[finderKey].finder;
 }
 
+/**
+* Gets finder parameters of a {@link CrawlKit} instance.
+*
+* @private
+* @param {!CrawlKit} crawlerInstance The {@link CrawlKit} instance.
+* @return {Array} the finder parameters (if set)
+*/
 function getFinderParameters(crawlerInstance) {
     return crawlerInstance[finderKey].parameters;
 }
 
+/**
+* Gets the {@link Runner} instances set for a {@link CrawlKit} instance.
+*
+* @private
+* @param {!CrawlKit} crawlerInstance The {@link CrawlKit} instance.
+* @return {Map} a map of {@link Runner} instances.
+*/
 function getRunners(crawlerInstance) {
     return crawlerInstance[runnerKey];
 }
