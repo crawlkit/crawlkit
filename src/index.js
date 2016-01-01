@@ -15,6 +15,7 @@ const createPhantomPool = require('./createPhantomPool.js');
 const juration = require('juration');
 const immediateStopDecorator = require('./worker/immediateStopDecorator');
 const cloneScope = require('./cloneScope');
+const transformMapToObject = require('./transformMapToObject');
 
 const step = {
     acquireBrowser: require('./worker/steps/acquireBrowser.js'),
@@ -36,21 +37,6 @@ const followRedirectsKey = Symbol();
 const browserCookiesKey = Symbol();
 const triesKey = Symbol();
 const redirectFilterKey = Symbol();
-
-/**
-* Transforms a {Map} to an {Object} hash.
-*
-* @private
-* @param {Map} map The map to transform
-* @return {Object} The transformed key/value hash object.
-*/
-function transformMapToObject(map) {
-    const result = {};
-    map.forEach((value, key) => {
-        result[key] = value;
-    });
-    return result;
-}
 
 /**
 * Gets a finder definition of a {@link CrawlKit} instance.
