@@ -13,6 +13,8 @@ const Chance = require('chance');
 const JSONStream = require('JSONStream');
 const createPhantomPool = require('./createPhantomPool.js');
 const juration = require('juration');
+const objectAssign = require('object-assign');
+const immediateStopDecorator = require('./worker/immediateStopDecorator');
 
 const step = {
     acquireBrowser: require('./worker/steps/acquireBrowser.js'),
@@ -371,6 +373,7 @@ class CrawlKit {
                     workerLogger.info(`Took ${scope.url} from queue` + (scope.tries > 1 ? ` (attempt ${scope.tries})` : '') + '.');
                     new NanoTimer().time((stopWorkerTimer) => {
                         const workerFinished = callbackTimeout(once((err) => {
+                            scope.stop = true;
                             if (err) {
                                 workerLogger.error(err);
                                 scope.result.error = err;
@@ -398,8 +401,11 @@ class CrawlKit {
                             if (err instanceof HeadlessError || err instanceof TimeoutError) {
                                 if (scope.tries < this.tries) {
                                     logger.info(`Retrying ${scope.url} - adding back to queue.`);
-                                    delete scope.result.error;
-                                    q.unshift(scope);
+                                    const clone = objectAssign({}, scope);
+                                    delete clone.result.error;
+                                    delete clone.stop;
+                                    q.push(clone);
+                                    scope.stop = true;
                                     return queueItemFinished();
                                 }
                                 logger.info(`Tried to crawl ${scope.url} ${scope.tries} times. Giving up.`);
@@ -411,12 +417,12 @@ class CrawlKit {
                         }), this.timeout, `Worker timed out after ${this.timeout}ms.`);
 
                         async.waterfall([
-                            step.acquireBrowser(scope, workerLogger, pool),
-                            step.createPage(scope, workerLogger),
-                            step.setPageSettings(scope, workerLogger, this.phantomPageSettings, this.followRedirects),
-                            step.openPage(scope, workerLogger, addUrl, this.followRedirects, this.redirectFilter),
-                            step.findLinks(scope, workerLogger, getFinder(this), getFinderParameters(this), addUrl),
-                            step.pageRunners(scope, workerLogger, getRunners(this), workerLogPrefix),
+                            immediateStopDecorator(scope, step.acquireBrowser(scope, workerLogger, pool)),
+                            immediateStopDecorator(scope, step.createPage(scope, workerLogger)),
+                            immediateStopDecorator(scope, step.setPageSettings(scope, workerLogger, this.phantomPageSettings, this.followRedirects)),
+                            immediateStopDecorator(scope, step.openPage(scope, workerLogger, addUrl, this.followRedirects, this.redirectFilter)),
+                            immediateStopDecorator(scope, step.findLinks(scope, workerLogger, getFinder(this), getFinderParameters(this), addUrl)),
+                            immediateStopDecorator(scope, step.pageRunners(scope, workerLogger, getRunners(this), workerLogPrefix)),
                         ], workerFinished);
                     }, '', 's', (workerRuntime) => {
                         workerLogger.info(`Finished. Took ${juration.stringify(workerRuntime) || 'less than a second'}.`);
@@ -457,6 +463,7 @@ class CrawlKit {
                         seen.set(url, shouldStream ? null : result);
                         q.push({
                             tries: 0,
+                            stop: false,
                             url,
                             result,
                             id: new Chance().name(),
