@@ -1078,12 +1078,19 @@ describe('CrawlKit', function main() {
         });
 
         it('should error if no URL was given', () => {
-            const crawler = new CrawlKit();
-            return crawler.crawl.bind(crawler).should.throw;
+            function x() {
+                const crawler = new CrawlKit();
+                crawler.crawl(true);
+            }
+            chai.expect(x).to.throw(errors.InvalidUrlError);
         });
+
         it('should error if erroneous URL was given', () => {
-            const crawler = new CrawlKit('mailto:bla@bla');
-            return crawler.crawl.bind(crawler).should.throw;
+            function x() {
+                const crawler = new CrawlKit('mailto:bla@bla');
+                crawler.crawl(true);
+            }
+            chai.expect(x).to.throw(errors.InvalidUrlError);
         });
     });
 });

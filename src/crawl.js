@@ -10,6 +10,7 @@ const cloneScope = require('./cloneScope');
 const worker = require('./worker');
 const createPhantomPool = require('./createPhantomPool.js');
 const timedRun = require('./timedRun');
+const InvalidUrlError = require('./errors').InvalidUrlError;
 
 /**
  * The protocol a URL without a protocol is written to.
@@ -28,7 +29,7 @@ module.exports = (crawlerInstance, writeResult, runnerKey, finderKey) => {
 
     return timedRun(logger, (done) => {
         if (!crawlerInstance.url) {
-            throw new Error(`Defined url '${crawlerInstance.url}' is not valid.`);
+            throw new InvalidUrlError(crawlerInstance.url);
         }
 
         let q;
@@ -81,6 +82,10 @@ module.exports = (crawlerInstance, writeResult, runnerKey, finderKey) => {
             done();
         };
 
-        addUrl(crawlerInstance.url);
+        try {
+            addUrl(crawlerInstance.url);
+        } catch (e) {
+            throw new InvalidUrlError(crawlerInstance.url);
+        }
     });
 };
