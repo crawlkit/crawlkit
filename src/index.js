@@ -13,8 +13,8 @@ const Chance = require('chance');
 const JSONStream = require('JSONStream');
 const createPhantomPool = require('./createPhantomPool.js');
 const juration = require('juration');
-const objectAssign = require('object-assign');
 const immediateStopDecorator = require('./worker/immediateStopDecorator');
+const cloneScope = require('./cloneScope');
 
 const step = {
     acquireBrowser: require('./worker/steps/acquireBrowser.js'),
@@ -401,11 +401,7 @@ class CrawlKit {
                             if (err instanceof HeadlessError || err instanceof TimeoutError) {
                                 if (scope.tries < this.tries) {
                                     logger.info(`Retrying ${scope.url} - adding back to queue.`);
-                                    const clone = objectAssign({}, scope);
-                                    delete clone.result.error;
-                                    delete clone.stop;
-                                    q.push(clone);
-                                    scope.stop = true;
+                                    q.push(cloneScope(scope));
                                     return queueItemFinished();
                                 }
                                 logger.info(`Tried to crawl ${scope.url} ${scope.tries} times. Giving up.`);
