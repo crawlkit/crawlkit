@@ -1,21 +1,17 @@
 'use strict'; // eslint-disable-line
 
+const async = require('async');
+const urijs = require('urijs');
+const Chance = require('chance');
+const JSONStream = require('JSONStream');
 const HeadlessError = require('node-phantom-simple/headless_error');
 const TimeoutError = require('callback-timeout/errors').TimeoutError;
 
-const async = require('async');
-const urijs = require('urijs');
-const once = require('once');
-const callbackTimeout = require('callback-timeout');
-const Chance = require('chance');
-const JSONStream = require('JSONStream');
-
 const createPhantomPool = require('./createPhantomPool.js');
-const immediateStopDecorator = require('./worker/immediateStopDecorator');
 const cloneScope = require('./cloneScope');
 const transformMapToObject = require('./transformMapToObject');
-const step = require('./worker/loadSteps');
 const timedRun = require('./timedRun');
+const worker = require('./worker');
 
 const concurrencyKey = Symbol();
 const urlKey = Symbol();
@@ -28,39 +24,6 @@ const followRedirectsKey = Symbol();
 const browserCookiesKey = Symbol();
 const triesKey = Symbol();
 const redirectFilterKey = Symbol();
-
-/**
- * Gets a finder definition of a {@link CrawlKit} instance.
- *
- * @private
- * @param {!CrawlKit} crawlerInstance The {@link CrawlKit} instance.
- * @return {Finder} the finder instance set via {@link CrawlKit#setFinder}.
- */
-function getFinder(crawlerInstance) {
-    return crawlerInstance[finderKey].finder;
-}
-
-/**
- * Gets finder parameters of a {@link CrawlKit} instance.
- *
- * @private
- * @param {!CrawlKit} crawlerInstance The {@link CrawlKit} instance.
- * @return {Array} the finder parameters (if set)
- */
-function getFinderParameters(crawlerInstance) {
-    return crawlerInstance[finderKey].parameters;
-}
-
-/**
- * Gets the {@link Runner} instances set for a {@link CrawlKit} instance.
- *
- * @private
- * @param {!CrawlKit} crawlerInstance The {@link CrawlKit} instance.
- * @return {Map} a map of {@link Runner} instances.
- */
-function getRunners(crawlerInstance) {
-    return crawlerInstance[runnerKey];
-}
 
 /**
  * The protocol a URL without a protocol is written to.
@@ -341,65 +304,50 @@ class CrawlKit {
                 }
                 const seen = new Map();
 
-                let addUrl;
-                const q = async.queue((scope, queueItemFinished) => {
-                    scope.tries++;
-                    const workerLogPrefix = `${prefix}:task(${scope.id})`;
-                    const workerLogger = require('./logger')(workerLogPrefix);
+                let q;
+                const addUrl = (u) => {
+                    let url = urijs(u);
+                    url = url.absoluteTo(defaultAbsoluteTo);
+                    url.normalize();
+                    url = url.toString();
 
-                    logger.info(`Worker started - ${q.length()} task(s) left in the queue.`);
-                    workerLogger.info(`Took ${scope.url} from queue` + (scope.tries > 1 ? ` (attempt ${scope.tries})` : '') + '.');
-                    timedRun(workerLogger, (stopWorkerTimer) => {
-                        const workerFinished = callbackTimeout(once((err) => {
-                            scope.stop = true;
-                            if (err) {
-                                workerLogger.error(err);
-                                scope.result.error = err;
-                            }
+                    if (!seen.has(url)) {
+                        logger.info(`Adding ${url}`);
+                        const result = {};
+                        // don't keep result in memory if we stream
+                        seen.set(url, shouldStream ? null : result);
+                        const scope = {
+                            tries: 0,
+                            stop: false,
+                            url,
+                            result,
+                            id: new Chance().name(),
+                        };
+                        q.push(scope);
+                        logger.info(`${q.length()} task(s) in the queue.`);
+                    } else {
+                        logger.debug(`Skipping ${url} - already seen.`);
+                    }
+                };
 
-                            if (scope.page) {
-                                workerLogger.debug(`Attempting to close page.`);
-                                scope.page.close();
-                                workerLogger.debug(`Page closed.`);
-                            }
-                            if (scope.browser) {
-                                if (err instanceof HeadlessError) {
-                                    // take no chances - if there was an error on Phantom side, we should get rid of the instance
-                                    workerLogger.info(`Notifying pool to destroy Phantom instance.`);
-                                    pool.destroy(scope.browser);
-                                    workerLogger.debug(`Phantom instance destroyed.`);
-                                } else {
-                                    workerLogger.debug(`Attempting to release Phantom instance.`);
-                                    pool.release(scope.browser);
-                                    workerLogger.debug(`Phantom instance released to pool.`);
-                                }
-                                scope.browser = null;
-                            }
-                            stopWorkerTimer();
-                            if (err instanceof HeadlessError || err instanceof TimeoutError) {
-                                if (scope.tries < this.tries) {
-                                    logger.info(`Retrying ${scope.url} - adding back to queue.`);
-                                    q.push(cloneScope(scope));
-                                    return queueItemFinished();
-                                }
-                                logger.info(`Tried to crawl ${scope.url} ${scope.tries} times. Giving up.`);
-                            }
-                            if (shouldStream) {
-                                stream.write([scope.url, scope.result]);
-                            }
-                            queueItemFinished(err);
-                        }), this.timeout, `Worker timed out after ${this.timeout}ms.`);
+                const processResult = (scope, err) => {
+                    if (err instanceof HeadlessError || err instanceof TimeoutError) {
+                        if (scope.tries < this.tries) {
+                            logger.info(`Retrying ${scope.url} - adding back to queue.`);
+                            q.unshift(cloneScope(scope));
+                            return;
+                        }
+                        logger.info(`Tried to crawl ${scope.url} ${scope.tries} times. Giving up.`);
+                    }
+                    if (shouldStream) {
+                        stream.write([scope.url, scope.result]);
+                    }
+                };
 
-                        async.waterfall([
-                            immediateStopDecorator(scope, step.acquireBrowser(scope, workerLogger, pool)),
-                            immediateStopDecorator(scope, step.createPage(scope, workerLogger)),
-                            immediateStopDecorator(scope, step.setPageSettings(scope, workerLogger, this.phantomPageSettings, this.followRedirects)),
-                            immediateStopDecorator(scope, step.openPage(scope, workerLogger, addUrl, this.followRedirects, this.redirectFilter)),
-                            immediateStopDecorator(scope, step.findLinks(scope, workerLogger, getFinder(this), getFinderParameters(this), addUrl)),
-                            immediateStopDecorator(scope, step.pageRunners(scope, workerLogger, getRunners(this), workerLogPrefix)),
-                        ], workerFinished);
-                    });
-                }, this.concurrency);
+                q = async.queue(
+                    worker(this, runnerKey, finderKey, prefix, pool, addUrl, processResult),
+                    this.concurrency
+                );
 
                 q.drain = () => {
                     logger.debug(`Processed ${seen.size} discovered URLs.`);
@@ -418,29 +366,6 @@ class CrawlKit {
                         resolve({
                             results: transformMapToObject(seen),
                         });
-                    }
-                };
-
-                addUrl = (u) => {
-                    let url = urijs(u);
-                    url = url.absoluteTo(defaultAbsoluteTo);
-                    url.normalize();
-                    url = url.toString();
-
-                    if (!seen.has(url)) {
-                        logger.info(`Adding ${url}`);
-                        const result = {};
-                        // don't keep result in memory if we stream
-                        seen.set(url, shouldStream ? null : result);
-                        q.push({
-                            tries: 0,
-                            stop: false,
-                            url,
-                            result,
-                            id: new Chance().name(),
-                        });
-                    } else {
-                        logger.debug(`Skipping ${url} - already seen.`);
                     }
                 };
 
