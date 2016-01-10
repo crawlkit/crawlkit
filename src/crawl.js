@@ -2,11 +2,10 @@
 
 const async = require('async');
 const urijs = require('urijs');
-const Chance = require('chance');
+const Scope = require('./Scope');
 const HeadlessError = require('node-phantom-simple/headless_error');
 const TimeoutError = require('callback-timeout/errors').TimeoutError;
 
-const cloneScope = require('./cloneScope');
 const worker = require('./worker');
 const createPhantomPool = require('./createPhantomPool.js');
 const timedRun = require('./timedRun');
@@ -23,8 +22,11 @@ const defaultAbsoluteTo = 'http://';
 module.exports = (crawlerInstance, writeResult, runnerKey, finderKey) => {
     const prefix = 'crawlkit' + (crawlerInstance.name ? `:${crawlerInstance.name}` : '');
     const logger = require('./logger')(prefix);
-    logger.info(`Starting to crawl. Concurrent PhantomJS browsers: ${crawlerInstance.concurrency}.`);
-    const pool = createPhantomPool(logger, crawlerInstance.concurrency, crawlerInstance.phantomParameters, crawlerInstance.browserCookies, prefix);
+    logger.info(`
+        Starting to crawl.
+        Concurrent PhantomJS browsers: ${crawlerInstance.concurrency}.
+    `);
+    const pool = createPhantomPool(logger, crawlerInstance, prefix);
     const seen = new Set();
 
     return timedRun(logger, (done) => {
@@ -42,13 +44,7 @@ module.exports = (crawlerInstance, writeResult, runnerKey, finderKey) => {
             if (!seen.has(url)) {
                 logger.info(`Adding ${url}`);
                 seen.add(url);
-                q.push({
-                    tries: 0,
-                    stop: false,
-                    url,
-                    result: {},
-                    id: new Chance().name(),
-                });
+                q.push(new Scope(url));
                 logger.info(`${q.length()} task(s) in the queue.`);
             } else {
                 logger.debug(`Skipping ${url} - already seen.`);
@@ -59,7 +55,7 @@ module.exports = (crawlerInstance, writeResult, runnerKey, finderKey) => {
             if (err instanceof HeadlessError || err instanceof TimeoutError) {
                 if (scope.tries < crawlerInstance.tries) {
                     logger.info(`Retrying ${scope.url} - adding back to queue.`);
-                    q.unshift(cloneScope(scope));
+                    q.unshift(scope.clone());
                     return;
                 }
                 logger.info(`Tried to crawl ${scope.url} ${scope.tries} times. Giving up.`);

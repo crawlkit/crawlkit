@@ -11,7 +11,8 @@ function genericAnchors(delay) {
     var timeoutDelay = Math.max(0, parseInt(delay, 10) || 0);
 
     window.setTimeout(function findAnchors() {
-        var urls = Array.prototype.slice.call(document.querySelectorAll('a')).map(function extractHref(a) {
+        var anchors = document.querySelectorAll('a');
+        var urls = Array.prototype.slice.call(anchors).map(function extractHref(a) {
             return a.getAttribute('href');
         });
         window.callPhantom(null, urls);

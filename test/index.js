@@ -11,16 +11,17 @@ const http = require('http');
 const httpProxy = require('http-proxy');
 const phantomjs = require('phantomjs');
 
-const HeadlessError = require('node-phantom-simple/headless_error');
-const TimeoutError = require('callback-timeout/errors').TimeoutError;
-const errors = require(path.join(__dirname, '..', 'src', 'errors.js'));
+const HeadlessError = require(path.join('node-phantom-simple', 'headless_error'));
+const TimeoutError = require(path.join('callback-timeout', 'errors')).TimeoutError;
+const srcFolder = path.join(__dirname, '..', 'src');
+const errors = require(path.join(srcFolder, 'errors.js'));
 
 const pkg = require(path.join(__dirname, '..', 'package.json'));
 const CrawlKit = require(path.join(__dirname, '..', pkg.main));
-const Finder = require(path.join(__dirname, '..', 'src', 'Finder.js'));
-const Runner = require(path.join(__dirname, '..', 'src', 'Runner.js'));
+const Finder = require(path.join(srcFolder, 'Finder.js'));
+const Runner = require(path.join(srcFolder, 'Runner.js'));
 
-const genericLinkFinder = require('../finders/genericAnchors.js');
+const genericLinkFinder = require(path.join('..', 'finders', 'genericAnchors.js'));
 
 chai.should();
 chai.use(chaiAsPromised);
@@ -297,7 +298,9 @@ describe('CrawlKit', function main() {
 
                     const results = {};
                     results[url] = {
-                        error: new TimeoutError(`Finder timed out after ${Finder.DEFAULT_TIMEOUT}ms.`),
+                        error: new TimeoutError(
+                            `Finder timed out after ${Finder.DEFAULT_TIMEOUT}ms.`
+                        ),
                     };
 
                     crawler.setFinder({
@@ -312,7 +315,9 @@ describe('CrawlKit', function main() {
 
                     const results = {};
                     results[url] = {
-                        error: new TimeoutError(`Finder timed out after ${Finder.DEFAULT_TIMEOUT}ms.`),
+                        error: new TimeoutError(
+                            `Finder timed out after ${Finder.DEFAULT_TIMEOUT}ms.`
+                        ),
                     };
                     const spy = sinon.spy(() => function neverReturningFilter() {});
                     crawler.setFinder({
@@ -513,7 +518,9 @@ describe('CrawlKit', function main() {
 
                 crawler.addRunner('transform', {
                     getCompanionFiles: () => [],
-                    getRunnable: () => function successRunner() { window.callPhantom(null, 'success'); },
+                    getRunnable: () => function successRunner() {
+                        window.callPhantom(null, 'success');
+                    },
                     transformResult: (result) => Promise.resolve(result.toUpperCase()),
                 });
 
@@ -534,7 +541,9 @@ describe('CrawlKit', function main() {
                 const err = new Error('whatevs');
                 crawler.addRunner('transform', {
                     getCompanionFiles: () => [],
-                    getRunnable: () => function successRunner() { window.callPhantom(null, 'success'); },
+                    getRunnable: () => function successRunner() {
+                        window.callPhantom(null, 'success');
+                    },
                     transformResult: () => {
                         throw err;
                     },
@@ -729,7 +738,9 @@ describe('CrawlKit', function main() {
                 results[url] = {
                     runners: {
                         x: {
-                            error: new TimeoutError(`Runner timed out after ${Runner.DEFAULT_TIMEOUT}ms.`),
+                            error: new TimeoutError(
+                                `Runner timed out after ${Runner.DEFAULT_TIMEOUT}ms.`
+                            ),
                         },
                     },
                 };
@@ -883,7 +894,10 @@ describe('CrawlKit', function main() {
 
             return crawler.crawl().then((data) => {
                 crawler.redirectFilter.should.have.been.calledOnce;
-                crawler.redirectFilter.should.have.been.calledWith('http://www.google.com/', externalRedirectUrl);
+                crawler.redirectFilter.should.have.been.calledWith(
+                    'http://www.google.com/',
+                    externalRedirectUrl
+                );
                 return data;
             }).should.eventually.deep.equal({ results });
         });
@@ -1083,7 +1097,8 @@ describe('CrawlKit', function main() {
         });
 
         it('should error if erroneous URL was given', () => {
-            expect(() => new CrawlKit('mailto:bla@bla').crawl(true)).to.throw(errors.InvalidUrlError);
+            const errUrl = 'mailto:bla@bla';
+            expect(() => new CrawlKit(errUrl).crawl(true)).to.throw(errors.InvalidUrlError);
         });
     });
 });

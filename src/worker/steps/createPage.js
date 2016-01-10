@@ -6,7 +6,7 @@ module.exports = (scope, logger) => {
                 return done(err);
             }
             logger.debug(`Page created.`);
-            scope.page = page;
+            scope.setPage(page);
             done();
         });
     };

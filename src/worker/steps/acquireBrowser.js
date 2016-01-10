@@ -5,7 +5,7 @@ module.exports = (scope, logger, pool) => {
             if (err) {
                 return done(err);
             }
-            scope.browser = browser;
+            scope.setBrowser(browser);
             logger.debug(`Acquired phantom from pool.`);
             done();
         });

@@ -8,7 +8,9 @@ const urijs = require('urijs');
 * with PhantomJS and evaluated code within.
 *
 * @private
-* @param {Array.<Object>} trace The Phantom trace (for example from [page.onError]{@link http://phantomjs.org/api/webpage/handler/on-error.html})
+* @param {Array.<Object>} trace The Phantom trace.
+*                               For example from [page.onError]{@link
+*                               http://phantomjs.org/api/webpage/handler/on-error.html})
 * @return {boolean} Whether the trace belongs to a PhantomJS-based execution or not.
 */
 module.exports = (trace) => {

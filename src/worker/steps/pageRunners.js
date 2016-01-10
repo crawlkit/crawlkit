@@ -26,7 +26,7 @@ module.exports = (scope, logger, runners, workerLogPrefix) => {
             cb(err);
         });
         const runnerIterator = runners[Symbol.iterator]();
-        const results = scope.result.runners = {};
+        const results = scope.result.runners = {}; // eslint-disable-line no-param-reassign
         const nextRunner = () => {
             if (done.called) {
                 logger.debug('Callback was called already.');
@@ -115,15 +115,20 @@ module.exports = (scope, logger, runners, workerLogPrefix) => {
                 }));
             }, doneAndNext)
             .then(function run() {
-                scope.page.onCallback = doneAndNext;
-                scope.page.onError = (err, trace) => {
+                const onError = (err, trace) => {
                     if (isPhantomError(trace)) {
                         doneAndNext(err);
                     } else {
                         runnerLogger.debug(`Page: "${err}" in ${JSON.stringify(trace)}`);
                     }
                 };
+
+                /* eslint-disable no-param-reassign */
+                scope.page.onError = onError;
+                scope.page.onCallback = doneAndNext;
                 scope.page.onConsoleMessage = runnerLogger.console;
+                /* eslint-enable no-param-reassign */
+
                 runnerLogger.info(`Started.`);
                 const params = [runner.getRunnable()].concat(parameters);
                 params.push((err) => {

@@ -48,17 +48,18 @@ module.exports = (crawlerInstance, runnerKey, finderKey, prefix, pool, addUrl, p
     }
 
     return (scope, queueItemFinished) => {
-        scope.tries++;
+        scope.retry();
         const workerLogPrefix = `${prefix}:task(${scope.id})`;
         const workerLogger = logger(workerLogPrefix);
 
-        workerLogger.info(`Took ${scope.url} from queue` + (scope.tries > 1 ? ` (attempt ${scope.tries})` : '') + '.');
+        const triesLog = scope.tries > 1 ? ` (attempt ${scope.tries})` : '';
+        workerLogger.info(`Took ${scope.url} from queue${triesLog}.`);
         timedRun(workerLogger, (done) => {
             const workerFinished = callbackTimeout(once((err) => {
-                scope.stop = true;
+                scope.stop();
                 if (err) {
                     workerLogger.error(err);
-                    scope.result.error = err;
+                    scope.result.error = err; // eslint-disable-line no-param-reassign
                 }
 
                 if (scope.page) {
@@ -68,7 +69,8 @@ module.exports = (crawlerInstance, runnerKey, finderKey, prefix, pool, addUrl, p
                 }
                 if (scope.browser) {
                     if (err instanceof HeadlessError) {
-                        // take no chances - if there was an error on Phantom side, we should get rid of the instance
+                        // take no chances
+                        // if there was an error on Phantom side, we should get rid of the instance
                         workerLogger.info(`Notifying pool to destroy Phantom instance.`);
                         pool.destroy(scope.browser);
                         workerLogger.debug(`Phantom instance destroyed.`);
@@ -77,20 +79,22 @@ module.exports = (crawlerInstance, runnerKey, finderKey, prefix, pool, addUrl, p
                         pool.release(scope.browser);
                         workerLogger.debug(`Phantom instance released to pool.`);
                     }
-                    scope.browser = null;
+                    scope.clearBrowser();
                 }
                 processResult(scope, err);
                 done();
             }), crawlerInstance.timeout, `Worker timed out after ${crawlerInstance.timeout}ms.`);
 
-            async.waterfall([
-                immediateStopDecorator(scope, step.acquireBrowser(scope, workerLogger, pool)),
-                immediateStopDecorator(scope, step.createPage(scope, workerLogger)),
-                immediateStopDecorator(scope, step.setPageSettings(scope, workerLogger, crawlerInstance.phantomPageSettings, crawlerInstance.followRedirects)),
-                immediateStopDecorator(scope, step.openPage(scope, workerLogger, addUrl, crawlerInstance.followRedirects, crawlerInstance.redirectFilter)),
-                immediateStopDecorator(scope, step.findLinks(scope, workerLogger, getFinder(), getFinderParameters(), addUrl)),
-                immediateStopDecorator(scope, step.pageRunners(scope, workerLogger, getRunners(), workerLogPrefix)),
-            ], workerFinished);
+            const steps = [
+                step.acquireBrowser(scope, workerLogger, pool),
+                step.createPage(scope, workerLogger),
+                step.setPageSettings(scope, workerLogger, crawlerInstance),
+                step.openPage(scope, workerLogger, addUrl, crawlerInstance),
+                step.findLinks(scope, workerLogger, getFinder(), getFinderParameters(), addUrl),
+                step.pageRunners(scope, workerLogger, getRunners(), workerLogPrefix),
+            ].map((fn) => immediateStopDecorator(scope, fn));
+
+            async.waterfall(steps, workerFinished);
         })(queueItemFinished);
     };
 };
