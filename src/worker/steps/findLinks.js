@@ -66,8 +66,7 @@ module.exports = (scope, logger, finder, finderParameters, addUrl) => {
             }
             done();
         }
-        scope.page.onCallback = phantomCallback;
-        scope.page.onError = (err, trace) => {
+        const phantomError = (err, trace) => {
             if (isPhantomError(trace)) {
                 logger.debug('Finder encountered Phantom error.');
                 phantomCallback(err);
@@ -75,6 +74,12 @@ module.exports = (scope, logger, finder, finderParameters, addUrl) => {
                 logger.debug(`Error in page: "${err}" in ${JSON.stringify(trace)}`);
             }
         };
+
+        /* eslint-disable no-param-reassign */
+        scope.page.onCallback = phantomCallback;
+        scope.page.onError = phantomError;
+        /* eslint-enable no-param-reassign */
+
         const params = [getFinderRunnable(finder)].concat(finderParameters || []);
         params.push((err) => {
             if (err) {

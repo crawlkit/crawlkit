@@ -11,16 +11,17 @@ const http = require('http');
 const httpProxy = require('http-proxy');
 const phantomjs = require('phantomjs');
 
-const HeadlessError = require('node-phantom-simple/headless_error');
-const TimeoutError = require('callback-timeout/errors').TimeoutError;
-const errors = require(path.join(__dirname, '..', 'src', 'errors.js'));
+const HeadlessError = require(path.join('node-phantom-simple', 'headless_error'));
+const TimeoutError = require(path.join('callback-timeout', 'errors')).TimeoutError;
+const srcFolder = path.join(__dirname, '..', 'src');
+const errors = require(path.join(srcFolder, 'errors.js'));
 
 const pkg = require(path.join(__dirname, '..', 'package.json'));
 const CrawlKit = require(path.join(__dirname, '..', pkg.main));
-const Finder = require(path.join(__dirname, '..', 'src', 'Finder.js'));
-const Runner = require(path.join(__dirname, '..', 'src', 'Runner.js'));
+const Finder = require(path.join(srcFolder, 'Finder.js'));
+const Runner = require(path.join(srcFolder, 'Runner.js'));
 
-const genericLinkFinder = require('../finders/genericAnchors.js');
+const genericLinkFinder = require(path.join('..', 'finders', 'genericAnchors.js'));
 
 chai.should();
 chai.use(chaiAsPromised);

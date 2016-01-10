@@ -3,6 +3,11 @@ const path = require('path');
 const pkg = require(path.join(__dirname, '..', '..', '..', 'package.json'));
 const phantomjs = require('phantomjs');
 
+/**
+ * @param {!Scope} scope The crawl scope object.
+ * @param {!Object} logger The logger object.
+ * @param {!CrawlKit} crawlerInstance The {@link CrawlKit} instance.
+ */
 module.exports = (scope, logger, crawlerInstance) => {
     const phantomPageSettings = crawlerInstance.phantomPageSettings;
     const followRedirects = crawlerInstance.followRedirects;

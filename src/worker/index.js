@@ -48,7 +48,7 @@ module.exports = (crawlerInstance, runnerKey, finderKey, prefix, pool, addUrl, p
     }
 
     return (scope, queueItemFinished) => {
-        scope.tries++;
+        scope.retry();
         const workerLogPrefix = `${prefix}:task(${scope.id})`;
         const workerLogger = logger(workerLogPrefix);
 
@@ -56,10 +56,10 @@ module.exports = (crawlerInstance, runnerKey, finderKey, prefix, pool, addUrl, p
         workerLogger.info(`Took ${scope.url} from queue${triesLog}.`);
         timedRun(workerLogger, (done) => {
             const workerFinished = callbackTimeout(once((err) => {
-                scope.stop = true;
+                scope.stop();
                 if (err) {
                     workerLogger.error(err);
-                    scope.result.error = err;
+                    scope.result.error = err; // eslint-disable-line no-param-reassign
                 }
 
                 if (scope.page) {
@@ -79,7 +79,7 @@ module.exports = (crawlerInstance, runnerKey, finderKey, prefix, pool, addUrl, p
                         pool.release(scope.browser);
                         workerLogger.debug(`Phantom instance released to pool.`);
                     }
-                    scope.browser = null;
+                    scope.clearBrowser();
                 }
                 processResult(scope, err);
                 done();
