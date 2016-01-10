@@ -8,11 +8,17 @@ const urijs = require('urijs');
 * if the filter does not return false.
 *
 * @private
-* @param {Function} [filterFn] The filter function to call on the URL. If not given, the URL will be assumed accepted.
-* @param {String} url The URL to filter. If this URL is not valid, it will be silently discarded (callback will not be called)
-* @param {String} fromUrl A URL where the URL to be filter originated from. In case the filter returns a relative URL, it will be rewritten relative to the this URL.
-* @param {Function} cb A function that is called with the rewritten URL
-* @param {(boolean|String)} returns the added URL if it was added. False if the URL was discarded. Throws an error if there is a problem with the URL.
+* @param {Function} [filterFn]  The filter function to call on the URL.
+*                               If not given, the URL will be assumed accepted.
+* @param {String} url           The URL to filter. If this URL is not valid,
+*                               it will be silently discarded (callback will not be called)
+* @param {String} fromUrl       A URL where the URL to be filter originated from.
+*                               In case the filter returns a relative URL,
+*                               it will be rewritten relative to the this URL.
+* @param {Function} cb          A function that is called with the rewritten URL
+* @return {(boolean|String)}    returns the added URL if it was added.
+*                               False if the URL was discarded.
+*                               Throws an error if there is a problem with the URL.
 */
 module.exports = (filterFn, url, fromUrl, cb) => {
     const uri = urijs(url);

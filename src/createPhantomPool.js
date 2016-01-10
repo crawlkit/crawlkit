@@ -6,8 +6,11 @@ const driver = require('node-phantom-simple');
 const phantomjs = require('phantomjs');
 const debug = require('debug');
 
-module.exports = (logger, concurrency, phantomParameters, browserCookies, prefix) => {
+module.exports = (logger, crawlerInstance, prefix) => {
     const poolDebug = {};
+    const concurrency = crawlerInstance.concurrency;
+    const phantomParameters = crawlerInstance.phantomParameters;
+    const browserCookies = crawlerInstance.browserCookies;
 
     return poolModule.Pool({ // eslint-disable-line new-cap
         create: (callback) => {

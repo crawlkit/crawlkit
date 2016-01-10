@@ -3,7 +3,10 @@ const path = require('path');
 const pkg = require(path.join(__dirname, '..', '..', '..', 'package.json'));
 const phantomjs = require('phantomjs');
 
-module.exports = (scope, logger, phantomPageSettings, followRedirects) => {
+module.exports = (scope, logger, crawlerInstance) => {
+    const phantomPageSettings = crawlerInstance.phantomPageSettings;
+    const followRedirects = crawlerInstance.followRedirects;
+
     return (done) => {
         logger.debug('Setting page settings');
         const settingsToSet = Object.assign({
@@ -20,7 +23,8 @@ module.exports = (scope, logger, phantomPageSettings, followRedirects) => {
 
         Promise.all(Object.keys(settingsToSet).map((key) => {
             return new Promise((success, reject) => {
-                logger.debug(`Attempting to set setting ${key} => ${JSON.stringify(settingsToSet[key])}`);
+                const strVal = JSON.stringify(settingsToSet[key]);
+                logger.debug(`Attempting to set setting ${key} => ${strVal}`);
                 scope.page.set(key, settingsToSet[key], (settingErr) => {
                     if (settingErr) {
                         logger.error(`Setting ${key} failed`);

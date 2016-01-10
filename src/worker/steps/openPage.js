@@ -6,7 +6,10 @@ const applyUrlFilterFn = require(path.join(__dirname, '..', '..', 'applyUrlFilte
 const errors = require(path.join(__dirname, '..', '..', 'errors.js'));
 const once = require('once');
 
-module.exports = (scope, logger, addUrl, followRedirects, redirectFilter) => {
+module.exports = (scope, logger, addUrl, crawlerInstance) => {
+    const followRedirects = crawlerInstance.followRedirects;
+    const redirectFilter = crawlerInstance.redirectFilter;
+
     return (cb) => {
         logger.debug('Opening page.');
         const done = once(cb);
@@ -18,12 +21,20 @@ module.exports = (scope, logger, addUrl, followRedirects, redirectFilter) => {
                 return;
             }
 
-            logger.debug(`Page for ${scope.url} asks for redirect. Will navigatate? ${willNavigate ? 'Yes' : 'No'}`);
+            logger.debug(`
+                Page for ${scope.url} asks for redirect.
+                Will navigatate? ${willNavigate ? 'Yes' : 'No'}
+            `);
 
             if (followRedirects) {
                 if (mainFrame && type === 'Other') {
                     try {
-                        const state = applyUrlFilterFn(redirectFilter, redirectedToUrl, scope.url, addUrl);
+                        const state = applyUrlFilterFn(
+                            redirectFilter,
+                            redirectedToUrl,
+                            scope.url,
+                            addUrl
+                        );
                         if (state === false) {
                             done(`URL ${redirectedToUrl} was not followed`, scope);
                         } else {

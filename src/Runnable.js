@@ -30,7 +30,8 @@ class Runnable {
     *
     * The time out of the returned function is controlled via {@link Runnable#timeout}.
     *
-    * Keep in mind that returned functions run in the webpage (and as such are restricted to browser features).
+    * Keep in mind that returned functions run in the webpage
+    * (and as such are restricted to browser features).
     * There are no node features available. Also, closures, etc. won't work.
     * Write this function as if it was called inside a pretty old WebKit.
     *
@@ -45,7 +46,8 @@ class Runnable {
     }
 
     /**
-    * Optional. Getter/setter for the timeout of the method returned by {@link Runnable#getRunnable}.
+    * Optional.
+    * Getter/setter for the timeout of the method returned by {@link Runnable#getRunnable}.
     *
     * Values under zero are set to zero.
     *

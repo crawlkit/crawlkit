@@ -23,8 +23,11 @@ const defaultAbsoluteTo = 'http://';
 module.exports = (crawlerInstance, writeResult, runnerKey, finderKey) => {
     const prefix = 'crawlkit' + (crawlerInstance.name ? `:${crawlerInstance.name}` : '');
     const logger = require('./logger')(prefix);
-    logger.info(`Starting to crawl. Concurrent PhantomJS browsers: ${crawlerInstance.concurrency}.`);
-    const pool = createPhantomPool(logger, crawlerInstance.concurrency, crawlerInstance.phantomParameters, crawlerInstance.browserCookies, prefix);
+    logger.info(`
+        Starting to crawl.
+        Concurrent PhantomJS browsers: ${crawlerInstance.concurrency}.
+    `);
+    const pool = createPhantomPool(logger, crawlerInstance, prefix);
     const seen = new Set();
 
     return timedRun(logger, (done) => {

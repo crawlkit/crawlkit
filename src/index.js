@@ -40,7 +40,8 @@ class CrawlKit {
     }
 
     /**
-     * Getter/setter for overall timeout for one website processing (opening page, evaluating runners and finder functions).
+     * Getter/setter for overall timeout for one website processing
+     * (opening page, evaluating runners and finder functions).
      * The timeout starts fresh for each website.
      *
      * Values under zero are set to zero.
@@ -103,7 +104,9 @@ class CrawlKit {
      * and is optional (e.g. if you want to only work on a single page).
      *
      * @param {!Finder} finder The finder instance to use for discovery.
-     * @param {...*} [runnableParams] These parameters are passed to the function returned by {@link Finder#getRunnable} at evaluation time.
+     * @param {...*} [runnableParams]   These parameters are passed
+     *                                  to the function returned by {@link Finder#getRunnable}
+     *                                  at evaluation time.
      */
     setFinder(finder /* parameters... */) {
         if (!finder || typeof finder.getRunnable !== 'function') {
@@ -144,18 +147,22 @@ class CrawlKit {
      * Allows you to add a runner that is executed on each crawled page.
      * The returned value of the runner is added to the overall result.
      * Runners run sequentially on each webpage in the order they were added.
-     * If a runner is crashing PhantomJS more than {@link CrawlKit#tries} times, subsequent {@link Runner}s are not executed.
+     * If a runner is crashing PhantomJS more than {@link CrawlKit#tries} times,
+     * subsequent {@link Runner}s are not executed.
      *
-     * @see For an example see `examples/simple.js`. For an example using parameters, see `examples/advanced.js`.
+     * @see For examples see `examples/simple.js` and `examples/advanced.js`.
      * @param {!String} key The runner identificator. This is also used in the result stream/object.
      * @param {!Runner} runner The runner instance to use for discovery.
-     * @param {...*} [runnableParams] These parameters are passed to the function returned by {@link Runner#getRunnable} at evaluation time.
+     * @param {...*} [runnableParams]   These parameters are passed to the function returned
+     *                                  by {@link Runner#getRunnable} at evaluation time.
      */
     addRunner(key, runner /* args ... */) {
         if (!key) {
             throw new Error('Not a valid runner key');
         }
-        if (!runner || typeof runner.getCompanionFiles !== 'function' || typeof runner.getRunnable !== 'function') {
+        if (!runner ||
+            typeof runner.getCompanionFiles !== 'function' ||
+            typeof runner.getRunnable !== 'function') {
             throw new Error('Not a valid runner instance');
         }
 
@@ -170,7 +177,8 @@ class CrawlKit {
     /**
      * Getter/setter for the map of parameters to pass to PhantomJS.
      * You can use this for example to ignore SSL errors.
-     * For a list of parameters, please refer to the [PhantomJS documentation]{@link http://phantomjs.org/api/command-line.html}.
+     * For a list of parameters, please refer to the
+     * [PhantomJS documentation]{@link http://phantomjs.org/api/command-line.html}.
      *
      * @type {!Object.<String,String>}
      */
@@ -188,7 +196,8 @@ class CrawlKit {
     /**
      * Getter/setter for the map of settings to pass to an opened page.
      * You can use this for example for Basic Authentication.
-     * For a list of options, please refer to the [PhantomJS documentation]{@link http://phantomjs.org/api/webpage/property/settings.html}.
+     * For a list of options, please refer to the
+     * [PhantomJS documentation]{@link http://phantomjs.org/api/webpage/property/settings.html}.
      * Nested settings can just be provided in dot notation as the key, e.g. 'settings.userAgent'.
      *
      * @type {!Object.<String,*>}
@@ -224,7 +233,8 @@ class CrawlKit {
 
     /**
      * Getter/setter for the cookies to set within PhantomJS.
-     * Each entry is supposed to be an object [following the PhantomJS spec]{@link http://phantomjs.org/api/webpage/method/add-cookie.html}.
+     * Each entry is supposed to be an object following the
+     * [PhantomJS spec]{@link http://phantomjs.org/api/webpage/method/add-cookie.html}.
      *
      * @type {!Array.<Object>}
      */
@@ -269,7 +279,9 @@ class CrawlKit {
      * This method starts the crawling/scraping process.
      *
      * @param {boolean} [shouldStream=false] Whether to stream the results or use a Promise
-     * @return {(Stream|Promise.<Object>)} By default a Promise object is returned that resolves to the result. If streaming is enabled it returns a JSON stream of the results.
+     * @return {(Stream|Promise.<Object>)}  By default a Promise object is returned that resolves
+     *                                      to the result. If streaming is enabled it returns a
+     *                                      JSON stream of the results.
      */
     crawl(shouldStream) {
         if (shouldStream) {

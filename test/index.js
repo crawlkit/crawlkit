@@ -297,7 +297,9 @@ describe('CrawlKit', function main() {
 
                     const results = {};
                     results[url] = {
-                        error: new TimeoutError(`Finder timed out after ${Finder.DEFAULT_TIMEOUT}ms.`),
+                        error: new TimeoutError(
+                            `Finder timed out after ${Finder.DEFAULT_TIMEOUT}ms.`
+                        ),
                     };
 
                     crawler.setFinder({
@@ -312,7 +314,9 @@ describe('CrawlKit', function main() {
 
                     const results = {};
                     results[url] = {
-                        error: new TimeoutError(`Finder timed out after ${Finder.DEFAULT_TIMEOUT}ms.`),
+                        error: new TimeoutError(
+                            `Finder timed out after ${Finder.DEFAULT_TIMEOUT}ms.`
+                        ),
                     };
                     const spy = sinon.spy(() => function neverReturningFilter() {});
                     crawler.setFinder({
@@ -513,7 +517,9 @@ describe('CrawlKit', function main() {
 
                 crawler.addRunner('transform', {
                     getCompanionFiles: () => [],
-                    getRunnable: () => function successRunner() { window.callPhantom(null, 'success'); },
+                    getRunnable: () => function successRunner() {
+                        window.callPhantom(null, 'success');
+                    },
                     transformResult: (result) => Promise.resolve(result.toUpperCase()),
                 });
 
@@ -534,7 +540,9 @@ describe('CrawlKit', function main() {
                 const err = new Error('whatevs');
                 crawler.addRunner('transform', {
                     getCompanionFiles: () => [],
-                    getRunnable: () => function successRunner() { window.callPhantom(null, 'success'); },
+                    getRunnable: () => function successRunner() {
+                        window.callPhantom(null, 'success');
+                    },
                     transformResult: () => {
                         throw err;
                     },
@@ -729,7 +737,9 @@ describe('CrawlKit', function main() {
                 results[url] = {
                     runners: {
                         x: {
-                            error: new TimeoutError(`Runner timed out after ${Runner.DEFAULT_TIMEOUT}ms.`),
+                            error: new TimeoutError(
+                                `Runner timed out after ${Runner.DEFAULT_TIMEOUT}ms.`
+                            ),
                         },
                     },
                 };
@@ -883,7 +893,10 @@ describe('CrawlKit', function main() {
 
             return crawler.crawl().then((data) => {
                 crawler.redirectFilter.should.have.been.calledOnce;
-                crawler.redirectFilter.should.have.been.calledWith('http://www.google.com/', externalRedirectUrl);
+                crawler.redirectFilter.should.have.been.calledWith(
+                    'http://www.google.com/',
+                    externalRedirectUrl
+                );
                 return data;
             }).should.eventually.deep.equal({ results });
         });
@@ -1083,7 +1096,8 @@ describe('CrawlKit', function main() {
         });
 
         it('should error if erroneous URL was given', () => {
-            expect(() => new CrawlKit('mailto:bla@bla').crawl(true)).to.throw(errors.InvalidUrlError);
+            const errUrl = 'mailto:bla@bla';
+            expect(() => new CrawlKit(errUrl).crawl(true)).to.throw(errors.InvalidUrlError);
         });
     });
 });

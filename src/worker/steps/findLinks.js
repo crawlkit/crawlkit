@@ -47,7 +47,8 @@ module.exports = (scope, logger, finder, finderParameters, addUrl) => {
                 logger.info(`Finder discovered ${urls.length} URLs.`);
                 urls.forEach((url) => {
                     try {
-                        const state = applyUrlFilterFn(getUrlFilter(finder), url, scope.url, addUrl);
+                        const filter = getUrlFilter(finder);
+                        const state = applyUrlFilterFn(filter, url, scope.url, addUrl);
                         if (state === false) {
                             logger.debug(`URL ${url} ignored due to URL filter.`);
                         } else if (url !== state) {

@@ -3,14 +3,19 @@ const defineError = require('define-error');
 
 module.exports.TransformationError = defineError('TransformationError');
 
-module.exports.StatusError = defineError('StatusError', function statusError(statusText, code) {
+function statusError(statusText, code) {
     this.code = code;
-});
+}
+module.exports.StatusError = defineError('StatusError', statusError);
 
-module.exports.RedirectError = defineError('RedirectError', function redirectError(statusText, targetUrl) {
+function redirectError(statusText, targetUrl) {
     this.targetUrl = targetUrl;
-});
+}
 
-module.exports.InvalidUrlError = defineError('InvalidUrlError', function urlError(statusText, url) {
+module.exports.RedirectError = defineError('RedirectError', redirectError);
+
+function urlError(statusText, url) {
     this.url = url;
-});
+}
+
+module.exports.InvalidUrlError = defineError('InvalidUrlError', urlError);
