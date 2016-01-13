@@ -6,4 +6,4 @@ script:
   - npm run lint
   - npm test
   - npm link --silent && npm link crawlkit --silent
-  - for f in examples/*.js; do echo "• running '$f'" && travis_retry node $f; done
+  - for f in examples/*.js; do echo "• running '$f'" && travis_retry node $f > /dev/null; done
