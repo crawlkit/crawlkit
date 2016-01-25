@@ -4,6 +4,11 @@
     "mocha": true
   },
   "rules": {
-    "no-unused-expressions": 0
-  }
+    "no-unused-expressions": 0,
+    "mocha/no-exclusive-tests": 2,
+    "mocha/handle-done-callback": 2
+  },
+  "plugins": [
+    "eslint-plugin-mocha"
+  ]
 }

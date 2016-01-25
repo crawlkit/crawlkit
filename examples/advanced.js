@@ -28,7 +28,7 @@ class TitleRunner {
     getRunnable() {
         // the function returned here runs within the webpage. No closures, etc.
         return function extractTitle(delay) {
-            window.setTimeout(function delayedWork() {
+            window.setTimeout(function delayedWork() {  // eslint-disable-line prefer-arrow-callback
                 window.callPhantom(null, document.title);
             }, delay);
         };

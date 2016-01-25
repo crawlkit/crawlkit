@@ -41,12 +41,13 @@ class DelayedRunner {
 
     getRunnable() {
         return function delayedRunner(delay, fail) {
-            window.setTimeout(function delayedCallback() {
-                if (fail) {
-                    throw new Error('runner failure');
-                }
-                window.callPhantom(null, 'success');
-            }, delay);
+            window.setTimeout(
+                function delayedCallback() { // eslint-disable-line prefer-arrow-callback
+                    if (fail) {
+                        throw new Error('runner failure');
+                    }
+                    window.callPhantom(null, 'success');
+                }, delay);
         };
     }
 }
@@ -128,10 +129,8 @@ describe('CrawlKit', function main() {
             const crawler = new CrawlKit(url);
             crawler.addRunner('userAgent', {
                 getCompanionFiles: () => [],
-                getRunnable: () => {
-                    return function getUserAgent() {
-                        window.callPhantom(null, navigator.userAgent);
-                    };
+                getRunnable: () => function getUserAgent() {
+                    window.callPhantom(null, navigator.userAgent);
                 },
             });
             const results = {};
@@ -399,7 +398,7 @@ describe('CrawlKit', function main() {
 
                 crawler.setFinder({
                     getRunnable: () => genericLinkFinder,
-                    urlFilter: () => {},
+                    urlFilter: () => ({}),
                 });
 
                 return crawler.crawl().should.eventually.deep.equal({ results });
@@ -604,10 +603,8 @@ describe('CrawlKit', function main() {
                         path.join(__dirname, 'fixtures/companionA.js'),
                         path.join(__dirname, 'fixtures/companionB.js'),
                     ],
-                    getRunnable: () => {
-                        return function callingGlobalRunner() {
-                            window.companionB();
-                        };
+                    getRunnable: () => function callingGlobalRunner() {
+                        window.companionB();
                     },
                 };
             });
@@ -635,10 +632,8 @@ describe('CrawlKit', function main() {
                         path.join(__dirname, 'fixtures/companionA.js'),
                         path.join(__dirname, 'fixtures/companionB.js'),
                     ]),
-                    getRunnable: () => {
-                        return function callingGlobalRunner() {
-                            window.companionB();
-                        };
+                    getRunnable: () => function callingGlobalRunner() {
+                        window.companionB();
                     },
                 });
 
@@ -676,10 +671,8 @@ describe('CrawlKit', function main() {
                         '/not/available.js',
                         '/not/existent.js',
                     ],
-                    getRunnable: () => {
-                        return function noop() {
-                            window.callPhantom(null, 'success');
-                        };
+                    getRunnable: () => function noop() {
+                        window.callPhantom(null, 'success');
                     },
                 });
 
@@ -791,10 +784,8 @@ describe('CrawlKit', function main() {
                 const crawler = new CrawlKit(url);
                 crawler.addRunner('param', {
                     getCompanionFiles: () => [],
-                    getRunnable: () => {
-                        return function callingGlobalRunner(a) {
-                            window.callPhantom(null, a);
-                        };
+                    getRunnable: () => function callingGlobalRunner(a) {
+                        window.callPhantom(null, a);
                     },
                 }, 'a');
 
@@ -813,10 +804,8 @@ describe('CrawlKit', function main() {
                 const crawler = new CrawlKit(url);
                 crawler.addRunner('param', {
                     getCompanionFiles: () => [],
-                    getRunnable: () => {
-                        return function callingGlobalRunner(a, b, c) {
-                            window.callPhantom(null, [a, b, c]);
-                        };
+                    getRunnable: () => function callingGlobalRunner(a, b, c) {
+                        window.callPhantom(null, [a, b, c]);
                     },
                 }, 'a', 'b', 'c');
 
@@ -835,10 +824,8 @@ describe('CrawlKit', function main() {
                 const crawler = new CrawlKit(url);
                 crawler.addRunner('param', {
                     getCompanionFiles: () => [],
-                    getRunnable: () => {
-                        return function callingGlobalRunner(a) {
-                            window.callPhantom(null, typeof a === 'undefined');
-                        };
+                    getRunnable: () => function callingGlobalRunner(a) {
+                        window.callPhantom(null, typeof a === 'undefined');
                     },
                 });
 
@@ -916,10 +903,8 @@ describe('CrawlKit', function main() {
 
             crawler.addRunner('cookies', {
                 getCompanionFiles: () => [],
-                getRunnable: () => {
-                    return function getCookies() {
-                        window.callPhantom(null, document.cookie);
-                    };
+                getRunnable: () => function getCookies() {
+                    window.callPhantom(null, document.cookie);
                 },
             });
 
@@ -943,10 +928,8 @@ describe('CrawlKit', function main() {
             };
             crawler.addRunner('agent', {
                 getCompanionFiles: () => [],
-                getRunnable: () => {
-                    return function userAgentRunner() {
-                        window.callPhantom(null, navigator.userAgent);
-                    };
+                getRunnable: () => function userAgentRunner() {
+                    window.callPhantom(null, navigator.userAgent);
                 },
             });
 
@@ -1040,7 +1023,7 @@ describe('CrawlKit', function main() {
                 };
             });
 
-            it('every = default', () => {
+            it('every = default', () => { // eslint-disable-line arrow-body-style
                 return crawler.crawl().then((result) => {
                     flakyRunnable.should.have.been.calledThrice;
                     return result;
@@ -1066,10 +1049,8 @@ describe('CrawlKit', function main() {
 
             crawler.addRunner('agent', {
                 getCompanionFiles: () => [],
-                getRunnable: () => {
-                    return function xRunner() {
-                        window.callPhantom(null, 'X');
-                    };
+                getRunnable: () => function xRunner() {
+                    window.callPhantom(null, 'X');
                 },
             });
 

@@ -20,7 +20,8 @@ const InvalidUrlError = require('./errors').InvalidUrlError;
 const defaultAbsoluteTo = 'http://';
 
 module.exports = (crawlerInstance, writeResult, runnerKey, finderKey) => {
-    const prefix = 'crawlkit' + (crawlerInstance.name ? `:${crawlerInstance.name}` : '');
+    const suffix = crawlerInstance.name ? `:${crawlerInstance.name}` : '';
+    const prefix = `crawlkit${suffix}`;
     const logger = require('./logger')(prefix);
     logger.info(`
         Starting to crawl.

@@ -11,13 +11,11 @@ const juration = require('juration');
 * @param {!Function} runFn The function to run
 * @return {Function} a function to start the processing. Takes an optional callback parameter.
 */
-module.exports = (logger, runFn) => {
-    return (cb) => {
-        new NanoTimer().time(runFn, '', 's', (time) => {
-            logger.info(`Finished. Took ${juration.stringify(time) || 'less than a second'}.`);
-            if (typeof cb === 'function') {
-                cb();
-            }
-        });
-    };
+module.exports = (logger, runFn) => (cb) => {
+    new NanoTimer().time(runFn, '', 's', (time) => {
+        logger.info(`Finished. Took ${juration.stringify(time) || 'less than a second'}.`);
+        if (typeof cb === 'function') {
+            cb();
+        }
+    });
 };

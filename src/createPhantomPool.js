@@ -28,18 +28,16 @@ module.exports = (logger, crawlerInstance, prefix) => {
                         logger.debug('No cookies to add.');
                         return done(null, browser);
                     }
-                    Promise.all(browserCookies.map((cookie) => {
-                        return new Promise((success, reject) => {
-                            logger.debug(`adding cookie '${cookie.name}=${cookie.value}'`);
-                            browser.addCookie(cookie, (cookieErr) => {
-                                if (cookieErr) {
-                                    logger.error(`adding cookie '${cookie.name}' failed`);
-                                    return reject(cookieErr);
-                                }
-                                success();
-                            });
+                    Promise.all(browserCookies.map((cookie) => new Promise((success, reject) => {
+                        logger.debug(`adding cookie '${cookie.name}=${cookie.value}'`);
+                        browser.addCookie(cookie, (cookieErr) => {
+                            if (cookieErr) {
+                                logger.error(`adding cookie '${cookie.name}' failed`);
+                                return reject(cookieErr);
+                            }
+                            success();
                         });
-                    })).then(() => {
+                    }))).then(() => {
                         logger.debug(`finished adding cookies`);
                         done(null, browser);
                     }, (cookieErr) => {

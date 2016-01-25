@@ -26,20 +26,18 @@ module.exports = (scope, logger, crawlerInstance) => {
             // settingsToSet.navigationLocked = true;
         }
 
-        Promise.all(Object.keys(settingsToSet).map((key) => {
-            return new Promise((success, reject) => {
-                const strVal = JSON.stringify(settingsToSet[key]);
-                logger.debug(`Attempting to set setting ${key} => ${strVal}`);
-                scope.page.set(key, settingsToSet[key], (settingErr) => {
-                    if (settingErr) {
-                        logger.error(`Setting ${key} failed`);
-                        return reject(settingErr);
-                    }
-                    logger.debug(`Successfully set setting ${key}`);
-                    success();
-                });
+        Promise.all(Object.keys(settingsToSet).map((key) => new Promise((success, reject) => {
+            const strVal = JSON.stringify(settingsToSet[key]);
+            logger.debug(`Attempting to set setting ${key} => ${strVal}`);
+            scope.page.set(key, settingsToSet[key], (settingErr) => {
+                if (settingErr) {
+                    logger.error(`Setting ${key} failed`);
+                    return reject(settingErr);
+                }
+                logger.debug(`Successfully set setting ${key}`);
+                success();
             });
-        })).then(() => {
+        }))).then(() => {
             logger.debug('All page settings set');
             done();
         }, done);

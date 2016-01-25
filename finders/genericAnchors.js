@@ -9,12 +9,13 @@
 function genericAnchors(delay) {
     /* eslint-disable no-var */
     var timeoutDelay = Math.max(0, parseInt(delay, 10) || 0);
+    function extractHref(a) {
+        return a.getAttribute('href');
+    }
 
-    window.setTimeout(function findAnchors() {
+    window.setTimeout(function findAnchors() { // eslint-disable-line prefer-arrow-callback
         var anchors = document.querySelectorAll('a');
-        var urls = Array.prototype.slice.call(anchors).map(function extractHref(a) {
-            return a.getAttribute('href');
-        });
+        var urls = Array.prototype.slice.call(anchors).map(extractHref);
         window.callPhantom(null, urls);
     }, timeoutDelay);
 }
