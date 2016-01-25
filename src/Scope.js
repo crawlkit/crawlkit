@@ -15,74 +15,74 @@ const pageKey = Symbol();
 
 class Scope {
 
-    constructor(url) {
-        this[tryKey] = 0;
-        this[resultKey] = {};
-        this[urlKey] = url;
-        this[stopKey] = false;
-    }
+  constructor(url) {
+    this[tryKey] = 0;
+    this[resultKey] = {};
+    this[urlKey] = url;
+    this[stopKey] = false;
+  }
 
-    get id() {
-        return this[idKey] || (this[idKey] = new Chance().name());
-    }
+  get id() {
+    return this[idKey] || (this[idKey] = new Chance().name());
+  }
 
-    get tries() {
-        return this[tryKey];
-    }
+  get tries() {
+    return this[tryKey];
+  }
 
-    get url() {
-        return this[urlKey];
-    }
+  get url() {
+    return this[urlKey];
+  }
 
-    retry() {
-        this[tryKey]++;
-    }
+  retry() {
+    this[tryKey]++;
+  }
 
-    get result() {
-        return this[resultKey];
-    }
+  get result() {
+    return this[resultKey];
+  }
 
-    isStopped() {
-        return this[stopKey];
-    }
+  isStopped() {
+    return this[stopKey];
+  }
 
-    stop() {
-        this[stopKey] = true;
-    }
+  stop() {
+    this[stopKey] = true;
+  }
 
-    setBrowser(browser) {
-        if (this.browser) {
-            throw new AlreadySetError();
-        }
-        this[browserKey] = browser;
+  setBrowser(browser) {
+    if (this.browser) {
+      throw new AlreadySetError();
     }
+    this[browserKey] = browser;
+  }
 
-    clearBrowser() {
-        this[browserKey] = undefined;
-    }
+  clearBrowser() {
+    this[browserKey] = undefined;
+  }
 
-    get browser() {
-        return this[browserKey];
-    }
+  get browser() {
+    return this[browserKey];
+  }
 
-    setPage(page) {
-        if (this.page) {
-            throw new AlreadySetError();
-        }
-        this[pageKey] = page;
+  setPage(page) {
+    if (this.page) {
+      throw new AlreadySetError();
     }
+    this[pageKey] = page;
+  }
 
-    get page() {
-        return this[pageKey];
-    }
+  get page() {
+    return this[pageKey];
+  }
 
-    clone() {
-        const clone = new Scope(this.url);
-        clone[tryKey] = this.tries;
-        clone[resultKey] = objectAssign({}, this.result);
-        delete clone[resultKey].error;
-        return clone;
-    }
+  clone() {
+    const clone = new Scope(this.url);
+    clone[tryKey] = this.tries;
+    clone[resultKey] = objectAssign({}, this.result);
+    delete clone[resultKey].error;
+    return clone;
+  }
 }
 
 module.exports = Scope;

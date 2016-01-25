@@ -1,3 +1,3 @@
 window.companionB = function companion() {
-    window.companionA();
+  window.companionA();
 };
