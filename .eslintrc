@@ -1,12 +1,4 @@
 {
   "extends": "eslint-config-airbnb/base",
-  "rules": {
-    "indent": [2, 4],
-    "mocha/no-exclusive-tests": 2,
-    "mocha/handle-done-callback": 2
-  },
-  "root": true,
-  "plugins": [
-    "eslint-plugin-mocha"
-  ]
+  "root": true
 }

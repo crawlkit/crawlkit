@@ -1,0 +1,10 @@
+{
+  "extends": "../.eslintrc",
+  "env": {
+    "node": false,
+    "es6": false
+  },
+  "rules": {
+    "prefer-arrow-callback": 0
+  }
+}

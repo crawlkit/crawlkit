@@ -1,8 +1,6 @@
-module.exports = (scope, fn) => {
-    return (done) => {
-        if (scope.isStopped()) {
-            return done();
-        }
-        fn(done);
-    };
+module.exports = (scope, fn) => (done) => {
+  if (scope.isStopped()) {
+    return done();
+  }
+  fn(done);
 };
