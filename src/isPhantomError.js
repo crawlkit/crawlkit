@@ -20,7 +20,9 @@ module.exports = (trace) => {
   for (let i = 0; i < trace.length; i++) {
     const obj = trace[i];
     try {
-      if (urijs(obj.file).protocol() === 'phantomjs') {
+      if (
+          obj.file === 'undefined' // hotfix for PhantomJS 2.x - see: ariya/phantomjs#13955
+          || urijs(obj.file).protocol() === 'phantomjs') {
         return true;
       }
     } catch (e) {

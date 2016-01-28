@@ -273,6 +273,7 @@ describe('CrawlKit', function main() {
 
       it('that throws an exception', () => {
         const crawler = new CrawlKit(url);
+        crawler.tries = 1;
 
         const results = {};
         results[url] = {
