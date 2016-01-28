@@ -5,6 +5,7 @@
 [![David](https://img.shields.io/david/crawlkit/crawlkit.svg)]()
 [![node](https://img.shields.io/node/v/crawlkit.svg)]()
 [![bitHound Overall Score](https://www.bithound.io/github/crawlkit/crawlkit/badges/score.svg)](https://www.bithound.io/github/crawlkit/crawlkit)
+[![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
 
 A crawler based on PhantomJS. Allows discovery of dynamic content and supports custom scrapers. For all your ajaxy crawling & scraping needs.
 
