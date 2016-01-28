@@ -62,6 +62,12 @@ class GenericLinkFinder {
   }
 }
 
+function createCrawler(url) {
+  const crawler = new CrawlKit(url);
+  crawler.tries = 1;
+  return crawler;
+}
+
 describe('CrawlKit', function main() {
   this.timeout(5 * 60 * 1000); // crawling can take a while
   let server;
@@ -130,7 +136,7 @@ describe('CrawlKit', function main() {
     });
 
     it('and identify itself properly', () => {
-      const crawler = new CrawlKit(url);
+      const crawler = createCrawler(url);
       crawler.addRunner('userAgent', {
         getCompanionFiles: () => [],
         getRunnable: () => function getUserAgent() {
@@ -151,18 +157,18 @@ describe('CrawlKit', function main() {
     });
 
     it('should error if no URL was given', () => {
-      const crawler = new CrawlKit();
+      const crawler = createCrawler();
       return crawler.crawl().should.eventually.be.rejected;
     });
 
     it('should error if erroneous URL was given', () => {
-      const crawler = new CrawlKit('mailto:bla@bla');
+      const crawler = createCrawler('mailto:bla@bla');
       return crawler.crawl().should.eventually.be.rejected;
     });
 
     describe('worker', () => {
       it('should time out', () => {
-        const crawler = new CrawlKit(url);
+        const crawler = createCrawler(url);
         crawler.timeout = 5;
         const results = {};
         results[url] = {
@@ -174,7 +180,7 @@ describe('CrawlKit', function main() {
       });
 
       it('should time out and release properly', () => {
-        const crawler = new CrawlKit(url);
+        const crawler = createCrawler(url);
         crawler.timeout = 500;
         crawler.setFinder(new GenericLinkFinder(), 2000);
 
@@ -190,7 +196,7 @@ describe('CrawlKit', function main() {
 
     describe('with a finder', () => {
       it('that is custom', () => {
-        const crawler = new CrawlKit(url);
+        const crawler = createCrawler(url);
 
         const results = {};
         results[url] = {};
@@ -204,7 +210,7 @@ describe('CrawlKit', function main() {
       });
 
       it('that allows parameters', () => {
-        const crawler = new CrawlKit(`${url}other.html`);
+        const crawler = createCrawler(`${url}other.html`);
 
         const results = {};
         results[`${url}other.html`] = {};
@@ -217,7 +223,7 @@ describe('CrawlKit', function main() {
       });
 
       it('that has an incorrect return value', () => {
-        const crawler = new CrawlKit(url);
+        const crawler = createCrawler(url);
 
         const results = {};
         results[url] = {};
@@ -233,7 +239,7 @@ describe('CrawlKit', function main() {
       });
 
       it(`that doesn't return URLs`, () => {
-        const crawler = new CrawlKit(url);
+        const crawler = createCrawler(url);
 
         const results = {};
         results[url] = {};
@@ -255,7 +261,7 @@ describe('CrawlKit', function main() {
       });
 
       it('that is erroneous', () => {
-        const crawler = new CrawlKit(url);
+        const crawler = createCrawler(url);
 
         const results = {};
         results[url] = {
@@ -272,7 +278,7 @@ describe('CrawlKit', function main() {
       });
 
       it('that throws an exception', () => {
-        const crawler = new CrawlKit(url);
+        const crawler = createCrawler(url);
         crawler.tries = 1;
 
         const results = {};
@@ -301,7 +307,7 @@ describe('CrawlKit', function main() {
         });
 
         it('that never returns (use given timeout)', () => {
-          const crawler = new CrawlKit(url);
+          const crawler = createCrawler(url);
 
           const results = {};
           results[url] = {
@@ -318,7 +324,7 @@ describe('CrawlKit', function main() {
         });
 
         it('that never returns (use default timeout)', () => {
-          const crawler = new CrawlKit(url);
+          const crawler = createCrawler(url);
 
           const results = {};
           results[url] = {
@@ -336,7 +342,7 @@ describe('CrawlKit', function main() {
         });
 
         it('should try X times in case of timeout', () => {
-          const crawler = new CrawlKit(url);
+          const crawler = createCrawler(url);
           crawler.tries = 2;
 
           const results = {};
@@ -357,7 +363,7 @@ describe('CrawlKit', function main() {
       });
 
       it('on a page with errors', () => {
-        const crawler = new CrawlKit(`${url}pageWithError.html`);
+        const crawler = createCrawler(`${url}pageWithError.html`);
 
         crawler.setFinder(new GenericLinkFinder(), 2000);
 
@@ -373,7 +379,7 @@ describe('CrawlKit', function main() {
 
     describe('urlFilter', () => {
       it('and filter the results', () => {
-        const crawler = new CrawlKit(url);
+        const crawler = createCrawler(url);
 
         const results = {};
         results[url] = {};
@@ -399,7 +405,7 @@ describe('CrawlKit', function main() {
       });
 
       it('and rewrite the results', () => {
-        const crawler = new CrawlKit(url);
+        const crawler = createCrawler(url);
 
         const results = {};
         results[url] = {};
@@ -422,7 +428,7 @@ describe('CrawlKit', function main() {
       });
 
       it('should handle faulty rewrites', () => {
-        const crawler = new CrawlKit(url);
+        const crawler = createCrawler(url);
 
         const results = {};
         results[url] = {};
@@ -438,7 +444,7 @@ describe('CrawlKit', function main() {
       });
 
       it('should be called with the scope where it came from', () => {
-        const crawler = new CrawlKit(url);
+        const crawler = createCrawler(url);
 
         const results = {};
         results[url] = {};
@@ -467,12 +473,12 @@ describe('CrawlKit', function main() {
   });
 
   it('should fall back to http', () => {
-    const crawler = new CrawlKit(`//${host}:${port}`);
+    const crawler = createCrawler(`//${host}:${port}`);
     return crawler.crawl().should.be.fulfilled;
   });
 
   it('should not fail on dead links', () => {
-    const crawler = new CrawlKit(`${url}deadlinks.html`);
+    const crawler = createCrawler(`${url}deadlinks.html`);
 
     const results = {};
     results[`${url}deadlinks.html`] = {};
@@ -489,7 +495,7 @@ describe('CrawlKit', function main() {
   });
 
   it('should fail for non-2xx answers', () => {
-    const crawler = new CrawlKit(`${url}custom404withHtmlAnswer`);
+    const crawler = createCrawler(`${url}custom404withHtmlAnswer`);
 
     const results = {};
     results[`${url}custom404withHtmlAnswer`] = {
@@ -501,7 +507,7 @@ describe('CrawlKit', function main() {
   });
 
   it('should not fail for non-2xx answers on secondary resources', () => {
-    const crawler = new CrawlKit(`${url}pageWith404js.html`);
+    const crawler = createCrawler(`${url}pageWith404js.html`);
 
     const results = {};
     results[`${url}pageWith404js.html`] = {};
@@ -512,7 +518,7 @@ describe('CrawlKit', function main() {
 
   describe('runners', () => {
     it('should be possible to use', () => {
-      const crawler = new CrawlKit(url);
+      const crawler = createCrawler(url);
 
       crawler.addRunner('a', {
         getCompanionFiles: () => [],
@@ -544,7 +550,7 @@ describe('CrawlKit', function main() {
     });
 
     it('should be able to run async', () => {
-      const crawler = new CrawlKit(url);
+      const crawler = createCrawler(url);
       crawler.addRunner('async', new DelayedRunner(), 2000);
 
       const results = {};
@@ -562,7 +568,7 @@ describe('CrawlKit', function main() {
 
     describe('transforming result', () => {
       it('should be possible', () => {
-        const crawler = new CrawlKit(url);
+        const crawler = createCrawler(url);
 
         crawler.addRunner('transform', {
           getCompanionFiles: () => [],
@@ -586,7 +592,7 @@ describe('CrawlKit', function main() {
       });
 
       it('errors should be handled', () => {
-        const crawler = new CrawlKit(url);
+        const crawler = createCrawler(url);
 
         const err = new Error('whatevs');
         crawler.addRunner('transform', {
@@ -615,7 +621,7 @@ describe('CrawlKit', function main() {
 
     describe('errors', () => {
       it('should not die on page errors', () => {
-        const crawler = new CrawlKit(`${url}pageWithError.html`);
+        const crawler = createCrawler(`${url}pageWithError.html`);
 
         crawler.addRunner('success', new DelayedRunner(), 2000);
 
@@ -633,7 +639,7 @@ describe('CrawlKit', function main() {
       });
 
       it('should die on runner errors', () => {
-        const crawler = new CrawlKit(`${url}pageWithError.html`);
+        const crawler = createCrawler(`${url}pageWithError.html`);
 
         crawler.addRunner('failure', new DelayedRunner(), 2000, true);
 
@@ -668,7 +674,7 @@ describe('CrawlKit', function main() {
 
 
       it('synchronously', () => {
-        const crawler = new CrawlKit(url);
+        const crawler = createCrawler(url);
         crawler.addRunner('companion', companionRunner);
 
         const results = {};
@@ -685,7 +691,7 @@ describe('CrawlKit', function main() {
       });
 
       it('async with a Promise', () => {
-        const crawler = new CrawlKit(url);
+        const crawler = createCrawler(url);
         crawler.addRunner('companion', {
           getCompanionFiles: () => Promise.resolve([
             path.join(__dirname, 'fixtures/companionA.js'),
@@ -711,7 +717,7 @@ describe('CrawlKit', function main() {
 
       it('should work on a broken website', () => {
         const urlToBrokenWebsite = `${url}pageWithError.immediate.html`;
-        const crawler = new CrawlKit(urlToBrokenWebsite);
+        const crawler = createCrawler(urlToBrokenWebsite);
         crawler.addRunner('companion', companionRunner);
 
         const results = {};
@@ -728,7 +734,7 @@ describe('CrawlKit', function main() {
       });
 
       it('should recover from unavailable companion files', () => {
-        const crawler = new CrawlKit(url);
+        const crawler = createCrawler(url);
         crawler.addRunner('broken', {
           getCompanionFiles: () => [
             '/not/available.js',
@@ -765,7 +771,7 @@ describe('CrawlKit', function main() {
       });
 
       it('given timeout', () => {
-        const crawler = new CrawlKit(url);
+        const crawler = createCrawler(url);
 
         crawler.addRunner('x', {
           timeout: 200,
@@ -787,7 +793,7 @@ describe('CrawlKit', function main() {
       });
 
       it('default timeout', () => {
-        const crawler = new CrawlKit(url);
+        const crawler = createCrawler(url);
 
         crawler.addRunner('x', {
           getCompanionFiles: () => [],
@@ -810,7 +816,7 @@ describe('CrawlKit', function main() {
       });
 
       it('multiple', () => {
-        const crawler = new CrawlKit(url);
+        const crawler = createCrawler(url);
 
         crawler.addRunner('x', {
           timeout: 100,
@@ -854,7 +860,7 @@ describe('CrawlKit', function main() {
 
     describe('Parameters', () => {
       it('should accept one parameter', () => {
-        const crawler = new CrawlKit(url);
+        const crawler = createCrawler(url);
         crawler.addRunner('param', {
           getCompanionFiles: () => [],
           getRunnable: () => function callingGlobalRunner(a) {
@@ -876,7 +882,7 @@ describe('CrawlKit', function main() {
       });
 
       it('should accept multiple parameters', () => {
-        const crawler = new CrawlKit(url);
+        const crawler = createCrawler(url);
         crawler.addRunner('param', {
           getCompanionFiles: () => [],
           getRunnable: () => function callingGlobalRunner(a, b, c) {
@@ -898,7 +904,7 @@ describe('CrawlKit', function main() {
       });
 
       it('should default missing parameters to undefined', () => {
-        const crawler = new CrawlKit(url);
+        const crawler = createCrawler(url);
         crawler.addRunner('param', {
           getCompanionFiles: () => [],
           getRunnable: () => function callingGlobalRunner(a) {
@@ -925,7 +931,7 @@ describe('CrawlKit', function main() {
     it.skip('should not be followed by default', () => {
       // This is currently marked as skipped, because `navigationLocked`
       // seems to make the Phantom instance crash
-      const crawler = new CrawlKit(`${url}redirect.html`);
+      const crawler = createCrawler(`${url}redirect.html`);
 
       crawler.setFinder(new GenericLinkFinder(), 1000);
 
@@ -940,7 +946,7 @@ describe('CrawlKit', function main() {
     it('should be followed when the according setting is enabled', () => {
       const redirectUrl = `${url}redirect.html`;
       const targetUrl = `${url}redirected.html`;
-      const crawler = new CrawlKit(redirectUrl);
+      const crawler = createCrawler(redirectUrl);
       crawler.followRedirects = true;
       const results = {};
       results[redirectUrl] = {
@@ -954,7 +960,7 @@ describe('CrawlKit', function main() {
 
     it('should be checked against the redirectFilter if available', () => {
       const externalRedirectUrl = `${url}redirect.external.html`;
-      const crawler = new CrawlKit(externalRedirectUrl);
+      const crawler = createCrawler(externalRedirectUrl);
       crawler.redirectFilter = sinon.spy(() => false);
       crawler.followRedirects = true;
       const results = {};
@@ -977,7 +983,7 @@ describe('CrawlKit', function main() {
 
   describe('cookies', () => {
     it('should be added to the page if given', () => {
-      const crawler = new CrawlKit(url);
+      const crawler = createCrawler(url);
 
       crawler.browserCookies = [{
         name: 'cookie',
@@ -1009,7 +1015,7 @@ describe('CrawlKit', function main() {
 
   describe('settings', () => {
     it('should be possible to set a page setting', () => {
-      const crawler = new CrawlKit(url);
+      const crawler = createCrawler(url);
       crawler.phantomPageSettings = {
         'settings.userAgent': 'Mickey Mouse',
       };
@@ -1035,7 +1041,7 @@ describe('CrawlKit', function main() {
 
 
     it('should be possible to set basic auth headers', () => {
-      const crawler = new CrawlKit(proxyUrl);
+      const crawler = createCrawler(proxyUrl);
       crawler.phantomPageSettings = {
         'settings.userName': 'foo',
         'settings.password': 'bar',
@@ -1055,9 +1061,8 @@ describe('CrawlKit', function main() {
 
   describe('resilience', () => {
     it('should be able to retry failed attempts when Phantom dies', () => {
-      const crawler = new CrawlKit(url);
-
-      let fails = 3;
+      const crawler = createCrawler(url);
+      let fails = crawler.tries = 3;
       const flakyRunnable = sinon.spy(() => {
         if (--fails > 0) {
           throw new HeadlessError();
@@ -1140,7 +1145,7 @@ describe('CrawlKit', function main() {
 
   describe('streaming', () => {
     it('should be possible to read from the stream', (done) => {
-      const crawler = new CrawlKit(url);
+      const crawler = createCrawler(url);
 
       crawler.setFinder(new GenericLinkFinder());
 
@@ -1189,12 +1194,12 @@ describe('CrawlKit', function main() {
     });
 
     it('should error if no URL was given', () => {
-      expect(() => new CrawlKit().crawl(true)).to.throw(errors.InvalidUrlError);
+      expect(() => createCrawler().crawl(true)).to.throw(errors.InvalidUrlError);
     });
 
     it('should error if erroneous URL was given', () => {
       const errUrl = 'mailto:bla@bla';
-      expect(() => new CrawlKit(errUrl).crawl(true)).to.throw(errors.InvalidUrlError);
+      expect(() => createCrawler(errUrl).crawl(true)).to.throw(errors.InvalidUrlError);
     });
   });
 });
