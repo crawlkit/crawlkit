@@ -7,11 +7,12 @@ notifications:
   email: false
 node_js:
   - '4'
-  - iojs-v3
-  - iojs-v2
-  - iojs-v1
-  - '0.12'
-  - '0.10'
+  - stable
+script:
+  - npm run lint
+  - npm test
+  - npm link --silent && npm link crawlkit --silent
+  - for f in examples/*.js; do echo "• running '$f'" && travis_retry node $f > /dev/null; done
 before_install:
   - npm i -g npm@^2.0.0
 before_script:
