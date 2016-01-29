@@ -28,6 +28,7 @@
   "scripts": {
     "docs": "jsdoc -c conf.json",
     "test": "mocha",
+    "postinstall": "validate-commit-msg",
     "lint": "eslint .",
     "tdd": "mocha --watch --reporter dot",
     "validate": "npm ls",
@@ -71,9 +72,10 @@
     "jsdoc": "^3.4.0",
     "mocha": "^2.3.4",
     "precommit-hook": "^3.0.0",
+    "semantic-release": "^4.3.5",
     "sinon": "^1.17.2",
     "sinon-chai": "^2.8.0",
-    "semantic-release": "^4.3.5"
+    "validate-commit-message": "^3.0.1"
   },
   "engines": {
     "node": ">=4.2"
