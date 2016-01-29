@@ -46,6 +46,14 @@ See the [API docs](http://crawlkit.github.io/crawlkit/docs/).
 ## Debugging
 CrawlKit uses [debug](https://github.com/visionmedia/debug) for debugging purposes. In short, you can add `DEBUG="*"` as an environment variable before starting your app to get all the logs. A more sane configuration is probably `DEBUG="*:info,*:error,-crawlkit:pool*"` if your page is big.
 
+## Contributing
+Please contribute away :)
+
+Please add tests for new functionality and adapt them for changes.
+
+The commit messages need to follow the [conventional changelog format](https://github.com/ajoslin/conventional-changelog) so semantic-release picks the semver versions properly. It is probably easiest if you install [commitizen](https://github.com/commitizen) via `npm install -g commitizen` and commit your changes via `git cz`.
+
+
 ## Available runners
 * [HTML Codesniffer runner](https://github.com/crawlkit/runner-htmlcs): Audit a website with the [HTML Codesniffer](https://github.com/squizlabs/HTML_CodeSniffer) to find accessibility defects.
 * [Google Chrome Accessibility Developer Tools runner](https://github.com/crawlkit/runner-accessibility-developer-tools): Audit a website with the [Google Chrome Accessibility Developer Tools](https://github.com/GoogleChrome/accessibility-developer-tools) to find accessibility defects.
