@@ -72,7 +72,7 @@ module.exports = (scope, logger, addUrl, crawlerInstance) => {
         done(err || `Failed to open ${scope.url}`);
         return;
       }
-      logger.debug(`Page opened`);
+      logger.debug('Page opened');
       done();
     });
   };

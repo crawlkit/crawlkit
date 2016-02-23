@@ -238,7 +238,7 @@ describe('CrawlKit', function main() {
         });
       });
 
-      it(`that doesn't return URLs`, () => {
+      it('that doesn\'t return URLs', () => {
         const crawler = createCrawler(url);
 
         const results = {};

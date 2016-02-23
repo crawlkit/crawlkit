@@ -32,7 +32,8 @@ module.exports = (scope, logger, crawlerInstance) => {
       scope.page.set(key, settingsToSet[key], (settingErr) => {
         if (settingErr) {
           logger.error(`Setting ${key} failed`);
-          return reject(settingErr);
+          reject(settingErr);
+          return;
         }
         logger.debug(`Successfully set setting ${key}`);
         success();

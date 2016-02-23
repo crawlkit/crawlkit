@@ -1,6 +1,7 @@
 module.exports = (scope, fn) => (done) => {
   if (scope.isStopped()) {
-    return done();
+    done();
+    return;
   }
   fn(done);
 };

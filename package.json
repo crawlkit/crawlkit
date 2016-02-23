@@ -66,6 +66,7 @@
     "eslint-config-airbnb": "^6.0.2",
     "eslint-plugin-mocha": "^2.0.0",
     "express": "^4.13.3",
+    "eslint-plugin-react": "^4.0.0",
     "freeport": "^1.0.5",
     "http-auth": "^2.2.8",
     "http-proxy": "^1.13.2",

@@ -16,7 +16,8 @@ module.exports = (scope, logger, runners, workerLogPrefix) => (cb) => {
 
   if (runners.size === 0) {
     logger.debug('No runners defined');
-    return cb();
+    cb();
+    return;
   }
 
   const done = once((err) => {
@@ -84,7 +85,7 @@ module.exports = (scope, logger, runners, workerLogPrefix) => (cb) => {
         });
       }
       tasks.then(() => {
-        runnerLogger.info(`Finished.`);
+        runnerLogger.info('Finished.');
         logger.debug('On to next runner.');
         nextRunner();
       });
@@ -100,11 +101,13 @@ module.exports = (scope, logger, runners, workerLogPrefix) => (cb) => {
           scope.page.injectJs(filename, (err, result) => {
             if (err) {
               runnerLogger.error(err);
-              return reject(err);
+              reject(err);
+              return;
             }
             if (!result) {
               runnerLogger.error(`Failed to inject '${filename}'`);
-              return reject(`Failed to inject '${filename}'`);
+              reject(`Failed to inject '${filename}'`);
+              return;
             }
             runnerLogger.debug(`Injected '${filename}'`);
             injected();
@@ -126,11 +129,12 @@ module.exports = (scope, logger, runners, workerLogPrefix) => (cb) => {
         scope.page.onConsoleMessage = runnerLogger.console;
         /* eslint-enable no-param-reassign */
 
-        runnerLogger.info(`Started.`);
+        runnerLogger.info('Started.');
         const params = [runner.getRunnable()].concat(parameters);
         params.push((err) => {
           if (err) {
-            return doneAndNext(err);
+            doneAndNext(err);
+            return;
           }
           logger.debug(`Runner '${runnerId}' evaluated`);
         });

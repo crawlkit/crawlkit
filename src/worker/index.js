@@ -63,21 +63,21 @@ module.exports = (crawlerInstance, runnerKey, finderKey, prefix, pool, addUrl, p
         }
 
         if (scope.page) {
-          workerLogger.debug(`Attempting to close page.`);
+          workerLogger.debug('Attempting to close page.');
           scope.page.close();
-          workerLogger.debug(`Page closed.`);
+          workerLogger.debug('Page closed.');
         }
         if (scope.browser) {
           if (err instanceof HeadlessError) {
             // take no chances
             // if there was an error on Phantom side, we should get rid of the instance
-            workerLogger.info(`Notifying pool to destroy Phantom instance.`);
+            workerLogger.info('Notifying pool to destroy Phantom instance.');
             pool.destroy(scope.browser);
-            workerLogger.debug(`Phantom instance destroyed.`);
+            workerLogger.debug('Phantom instance destroyed.');
           } else {
-            workerLogger.debug(`Attempting to release Phantom instance.`);
+            workerLogger.debug('Attempting to release Phantom instance.');
             pool.release(scope.browser);
-            workerLogger.debug(`Phantom instance released to pool.`);
+            workerLogger.debug('Phantom instance released to pool.');
           }
           scope.clearBrowser();
         }

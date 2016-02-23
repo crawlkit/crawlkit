@@ -22,7 +22,8 @@ module.exports = (scope, logger, finder, finderParameters, addUrl) => (cb) => {
   logger.debug('Trying to run finder.');
   if (!finder) {
     logger.debug('No finder defined.');
-    return cb();
+    cb();
+    return;
   }
 
   const timeout = finder.timeout || Finder.DEFAULT_TIMEOUT;
@@ -82,9 +83,10 @@ module.exports = (scope, logger, finder, finderParameters, addUrl) => (cb) => {
   const params = [getFinderRunnable(finder)].concat(finderParameters || []);
   params.push((err) => {
     if (err) {
-      return done(err);
+      done(err);
+      return;
     }
-    logger.debug(`Finder code evaluated`);
+    logger.debug('Finder code evaluated');
   });
   scope.page.evaluate.apply(scope.page, params);
 };
