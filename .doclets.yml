@@ -1,6 +1,4 @@
-dir:
-  - src
-  - finders
+dir: src
 packageJson: package.json
 articles:
   - Overview: README.md
