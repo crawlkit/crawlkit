@@ -3,4 +3,4 @@ dir:
   - finders
 packageJson: package.json
 articles:
- 	- Overview: README.md
+  - Overview: README.md
