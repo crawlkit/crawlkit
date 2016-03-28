@@ -35,7 +35,7 @@ module.exports = (crawlerInstance, writeResult, runnerKey, finderKey) => {
       throw new InvalidUrlError(crawlerInstance.url);
     }
 
-    let q;
+    let q = null;
     const addUrl = (u) => {
       let url = urijs(u);
       url = url.absoluteTo(defaultAbsoluteTo);
