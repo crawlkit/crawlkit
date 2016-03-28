@@ -62,7 +62,7 @@
     "chai": "^3.5.0",
     "chai-as-promised": "^5.2.0",
     "cz-conventional-changelog": "^1.1.5",
-    "eslint": "^2.2.0",
+    "eslint": "^2.5.1",
     "eslint-config-airbnb": "^6.0.2",
     "eslint-plugin-mocha": "^2.0.0",
     "eslint-plugin-react": "^4.1.0",
