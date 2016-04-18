@@ -42,7 +42,7 @@ crawler.crawl()
 Also, have a look at the [samples](https://github.com/crawlkit/crawlkit/tree/master/examples).
 
 ## API
-See the [API docs](http://crawlkit.github.io/crawlkit/docs/).
+See the [API docs](http://crawlkit.github.io/crawlkit/docs/) (published) or the docs on [doclets.io](https://doclets.io/crawlkit/crawlkit/master) (live).
 
 ## Debugging
 CrawlKit uses [debug](https://github.com/visionmedia/debug) for debugging purposes. In short, you can add `DEBUG="*"` as an environment variable before starting your app to get all the logs. A more sane configuration is probably `DEBUG="*:info,*:error,-crawlkit:pool*"` if your page is big.
