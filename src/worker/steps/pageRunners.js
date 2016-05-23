@@ -7,6 +7,7 @@ const callbackTimeout = require('callback-timeout');
 const basePath = path.join(__dirname, '..', '..');
 const isPhantomError = require(path.join(basePath, 'isPhantomError.js'));
 const Runner = require(path.join(basePath, 'Runner.js'));
+const l = require('../../logger');
 
 const TransformationError = require(path.join(basePath, 'errors.js')).TransformationError;
 const HeadlessError = require('node-phantom-simple/headless_error');
@@ -45,7 +46,7 @@ module.exports = (scope, logger, runners, workerLogPrefix) => (cb) => {
     const parameters = runnerObj.parameters;
 
     const runnerLogPrefix = `${workerLogPrefix}:runner(${runnerId})`;
-    const runnerLogger = require('../../logger')(runnerLogPrefix);
+    const runnerLogger = l(runnerLogPrefix);
     runnerLogger.console = debug(`${runnerLogPrefix}:console:debug`);
 
     const timeout = runner.timeout || Runner.DEFAULT_TIMEOUT;

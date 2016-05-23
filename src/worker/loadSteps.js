@@ -7,7 +7,7 @@ glob.sync('*.js', {
   cwd: path.join(__dirname, 'steps'),
   realpath: true,
 }).forEach((file) => {
-  step[path.basename(file, '.js')] = require(file);
+  step[path.basename(file, '.js')] = require(file); // eslint-disable-line global-require
 });
 
 module.exports = step;

@@ -10,6 +10,7 @@ const worker = require('./worker');
 const createPhantomPool = require('./createPhantomPool.js');
 const timedRun = require('./timedRun');
 const InvalidUrlError = require('./errors').InvalidUrlError;
+const l = require('./logger');
 
 /**
  * The protocol a URL without a protocol is written to.
@@ -22,7 +23,7 @@ const defaultAbsoluteTo = 'http://';
 module.exports = (crawlerInstance, writeResult, runnerKey, finderKey) => {
   const suffix = crawlerInstance.name ? `:${crawlerInstance.name}` : '';
   const prefix = `crawlkit${suffix}`;
-  const logger = require('./logger')(prefix);
+  const logger = l(prefix);
   logger.info(`
         Starting to crawl.
         Concurrent PhantomJS browsers: ${crawlerInstance.concurrency}.
