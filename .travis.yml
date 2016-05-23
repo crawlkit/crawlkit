@@ -7,6 +7,7 @@ notifications:
   email: false
 node_js:
   - '4'
+  - '5'
   - stable
 script:
   - npm run lint
