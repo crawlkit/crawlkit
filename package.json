@@ -42,7 +42,7 @@
   "author": "Joscha Feth <joscha@feth.com>",
   "license": "MIT",
   "dependencies": {
-    "JSONStream": "^1.1.1",
+    "JSONStream": "^1.2.0",
     "async": "^2.0.0-rc.5",
     "callback-timeout": "^2.0.0",
     "chance": "^1.0.3",
