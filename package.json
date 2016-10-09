@@ -67,7 +67,7 @@
     "eslint-plugin-import": "1.8.1",
     "eslint-plugin-jsx-a11y": "^1.2.2",
     "eslint-plugin-mocha": "^3.0.0",
-    "eslint-plugin-react": "^5.1.1",
+    "eslint-plugin-react": "^6.4.0",
     "express": "^4.13.4",
     "freeport": "^1.0.5",
     "http-auth": "^2.3.6",
