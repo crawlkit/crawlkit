@@ -1,6 +1,5 @@
 'use strict'; // eslint-disable-line
-const path = require('path');
-const pkg = require(path.join(__dirname, '..', '..', '..', 'package.json'));
+const pkg = require('../../../package.json');
 const phantomjs = require('phantomjs-prebuilt');
 
 /**
@@ -26,7 +25,7 @@ module.exports = (scope, logger, crawlerInstance) => {
       // settingsToSet.navigationLocked = true;
     }
 
-    Promise.all(Object.keys(settingsToSet).map((key) => new Promise((success, reject) => {
+    Promise.all(Object.keys(settingsToSet).map(key => new Promise((success, reject) => {
       const strVal = JSON.stringify(settingsToSet[key]);
       logger.debug(`Attempting to set setting ${key} => ${strVal}`);
       scope.page.set(key, settingsToSet[key], (settingErr) => {

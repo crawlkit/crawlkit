@@ -92,7 +92,7 @@ module.exports = (crawlerInstance, runnerKey, finderKey, prefix, pool, addUrl, p
         step.openPage(scope, workerLogger, addUrl, crawlerInstance),
         step.findLinks(scope, workerLogger, getFinder(), getFinderParameters(), addUrl),
         step.pageRunners(scope, workerLogger, getRunners(), workerLogPrefix),
-      ].map((fn) => immediateStopDecorator(scope, fn));
+      ].map(fn => immediateStopDecorator(scope, fn));
 
       async.waterfall(steps, workerFinished);
     })(queueItemFinished);

@@ -17,7 +17,7 @@ module.exports = (trace) => {
   if (!(trace instanceof Array)) {
     return false;
   }
-  for (let i = 0; i < trace.length; i++) {
+  for (let i = 0; i < trace.length; i += 1) {
     const obj = trace[i];
     try {
       if (
@@ -26,7 +26,7 @@ module.exports = (trace) => {
         return true;
       }
     } catch (e) {
-      continue;
+      // we don't care, we just carry on
     }
   }
   return false;

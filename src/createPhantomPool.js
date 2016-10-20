@@ -29,7 +29,7 @@ module.exports = (logger, crawlerInstance, prefix) => {
             done(null, browser);
             return;
           }
-          Promise.all(browserCookies.map((cookie) => new Promise((success, reject) => {
+          Promise.all(browserCookies.map(cookie => new Promise((success, reject) => {
             logger.debug(`adding cookie '${cookie.name}=${cookie.value}'`);
             browser.addCookie(cookie, (cookieErr) => {
               if (cookieErr) {

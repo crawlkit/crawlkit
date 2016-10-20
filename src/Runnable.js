@@ -1,9 +1,10 @@
 'use strict'; // eslint-disable-line
-
+/* eslint-disable class-methods-use-this */
+/* eslint-env browser */
 /**
  * @private
  */
-const timeoutKey = Symbol();
+const timeoutKey = Symbol('timeout');
 
 /**
  * The default timeout for a runnable in ms.

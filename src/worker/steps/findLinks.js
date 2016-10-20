@@ -1,11 +1,9 @@
 'use strict'; // eslint-disable-line
-const path = require('path');
 const once = require('once');
 const callbackTimeout = require('callback-timeout');
-const basePath = path.join(__dirname, '..', '..');
-const isPhantomError = require(path.join(basePath, 'isPhantomError.js'));
-const applyUrlFilterFn = require(path.join(basePath, 'applyUrlFilterFn.js'));
-const Finder = require(path.join(basePath, 'Finder.js'));
+const isPhantomError = require('../../isPhantomError.js');
+const applyUrlFilterFn = require('../../applyUrlFilterFn.js');
+const Finder = require('../../Finder.js');
 
 function getFinderRunnable(finder) {
   if (!finder) {

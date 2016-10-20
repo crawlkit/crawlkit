@@ -1,4 +1,5 @@
 'use strict'; // eslint-disable-line
+/* eslint-disable class-methods-use-this */
 
 const Runnable = require('./Runnable.js');
 const genericAnchors = require('../finders/genericAnchors.js');

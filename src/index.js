@@ -3,17 +3,17 @@
 const JSONStream = require('JSONStream');
 const crawl = require('./crawl');
 
-const concurrencyKey = Symbol();
-const urlKey = Symbol();
-const finderKey = Symbol();
-const timeoutKey = Symbol();
-const runnerKey = Symbol();
-const phantomParamsKey = Symbol();
-const phantomPageSettingsKey = Symbol();
-const followRedirectsKey = Symbol();
-const browserCookiesKey = Symbol();
-const triesKey = Symbol();
-const redirectFilterKey = Symbol();
+const concurrencyKey = Symbol('concurrency');
+const urlKey = Symbol('url');
+const finderKey = Symbol('finder');
+const timeoutKey = Symbol('timeout');
+const runnerKey = Symbol('runner');
+const phantomParamsKey = Symbol('phantomParams');
+const phantomPageSettingsKey = Symbol('phantomPageSettings');
+const followRedirectsKey = Symbol('followRedirects');
+const browserCookiesKey = Symbol('browserCookies');
+const triesKey = Symbol('tries');
+const redirectFilterKey = Symbol('redirectFilter');
 
 /**
  * The CrawlKit base class. This is where the magic happens.
@@ -272,7 +272,7 @@ class CrawlKit {
    * @ignore
    */
   get redirectFilter() {
-    return this[redirectFilterKey] || ((targetUrl) => targetUrl);
+    return this[redirectFilterKey] || (targetUrl => targetUrl);
   }
 
   /**
