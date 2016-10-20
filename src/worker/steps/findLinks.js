@@ -86,5 +86,5 @@ module.exports = (scope, logger, finder, finderParameters, addUrl) => (cb) => {
     }
     logger.debug('Finder code evaluated');
   });
-  scope.page.evaluate(...params);
+  scope.page.evaluate.apply(scope.page, params);
 };

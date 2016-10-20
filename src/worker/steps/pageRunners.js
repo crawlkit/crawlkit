@@ -138,7 +138,7 @@ module.exports = (scope, logger, runners, workerLogPrefix) => (cb) => {
           logger.debug(`Runner '${runnerId}' evaluated`);
         });
         logger.debug(`Trying to evaluate runner '${runnerId}'`);
-        scope.page.evaluate(...params);
+        scope.page.evaluate.apply(scope.page, params);
       }, doneAndNext)
       .catch((err) => {
         runnerLogger.debug('Runner caught an error');

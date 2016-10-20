@@ -2,6 +2,7 @@
   "extends": "eslint-config-airbnb/base",
   "root": true,
   "rules": {
-    "prefer-rest-params": 0
+    "prefer-rest-params": 0,
+    "prefer-spread": 0
   }
 }
