@@ -44,4 +44,4 @@ crawler.addRunner('title', new TitleRunner(), 1000);
 crawler.crawl()
   .then((results) => {
     console.log(JSON.stringify(results, true, 2));
-  }, (err) => console.error(err));
+  }, err => console.error(err));

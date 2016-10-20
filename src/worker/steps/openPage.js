@@ -1,9 +1,8 @@
 'use strict'; // eslint-disable-line
 
 const urijs = require('urijs');
-const path = require('path');
-const applyUrlFilterFn = require(path.join(__dirname, '..', '..', 'applyUrlFilterFn.js'));
-const errors = require(path.join(__dirname, '..', '..', 'errors.js'));
+const applyUrlFilterFn = require('../../applyUrlFilterFn.js');
+const errors = require('../../errors.js');
 const once = require('once');
 
 /**

@@ -2,14 +2,12 @@
 
 const debug = require('debug');
 const once = require('once');
-const path = require('path');
 const callbackTimeout = require('callback-timeout');
-const basePath = path.join(__dirname, '..', '..');
-const isPhantomError = require(path.join(basePath, 'isPhantomError.js'));
-const Runner = require(path.join(basePath, 'Runner.js'));
+const isPhantomError = require('../../isPhantomError.js');
+const Runner = require('../../Runner.js');
 const l = require('../../logger');
 
-const TransformationError = require(path.join(basePath, 'errors.js')).TransformationError;
+const TransformationError = require('../../errors.js').TransformationError;
 const HeadlessError = require('node-phantom-simple/headless_error');
 
 module.exports = (scope, logger, runners, workerLogPrefix) => (cb) => {
@@ -98,7 +96,7 @@ module.exports = (scope, logger, runners, workerLogPrefix) => (cb) => {
         if (files.length) {
           runnerLogger.debug(`Starting to inject ${files.length} companion files`);
         }
-        return Promise.all(files.map((filename) => new Promise((injected, reject) => {
+        return Promise.all(files.map(filename => new Promise((injected, reject) => {
           scope.page.injectJs(filename, (err, result) => {
             if (err) {
               runnerLogger.error(err);
@@ -140,7 +138,7 @@ module.exports = (scope, logger, runners, workerLogPrefix) => (cb) => {
           logger.debug(`Runner '${runnerId}' evaluated`);
         });
         logger.debug(`Trying to evaluate runner '${runnerId}'`);
-        scope.page.evaluate.apply(scope.page, params);
+        scope.page.evaluate(...params);
       }, doneAndNext)
       .catch((err) => {
         runnerLogger.debug('Runner caught an error');

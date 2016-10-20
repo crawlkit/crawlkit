@@ -5,13 +5,13 @@ const objectAssign = require('object-assign');
 
 const AlreadySetError = require('./errors').AlreadySetError;
 
-const urlKey = Symbol();
-const idKey = Symbol();
-const resultKey = Symbol();
-const tryKey = Symbol();
-const stopKey = Symbol();
-const browserKey = Symbol();
-const pageKey = Symbol();
+const urlKey = Symbol('url');
+const idKey = Symbol('id');
+const resultKey = Symbol('result');
+const tryKey = Symbol('try');
+const stopKey = Symbol('stop');
+const browserKey = Symbol('browser');
+const pageKey = Symbol('page');
 
 class Scope {
 
@@ -35,7 +35,7 @@ class Scope {
   }
 
   retry() {
-    this[tryKey]++;
+    this[tryKey] += 1;
   }
 
   get result() {

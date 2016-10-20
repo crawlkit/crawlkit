@@ -1,5 +1,6 @@
 'use strict'; // eslint-disable-line
-
+/* eslint-disable class-methods-use-this */
+/* eslint-env browser */
 const Runnable = require('./Runnable.js');
 
 /**

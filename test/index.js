@@ -1,4 +1,5 @@
 'use strict'; // eslint-disable-line
+
 const chai = require('chai');
 const chaiAsPromised = require('chai-as-promised');
 const sinon = require('sinon');
@@ -11,17 +12,16 @@ const http = require('http');
 const httpProxy = require('http-proxy');
 const phantomjs = require('phantomjs-prebuilt');
 
-const HeadlessError = require(path.join('node-phantom-simple', 'headless_error'));
-const TimeoutError = require(path.join('callback-timeout', 'errors')).TimeoutError;
-const srcFolder = path.join(__dirname, '..', 'src');
-const errors = require(path.join(srcFolder, 'errors.js'));
+const HeadlessError = require('node-phantom-simple/headless_error');
+const TimeoutError = require('callback-timeout/errors').TimeoutError;
+const errors = require('../src/errors.js');
 
-const pkg = require(path.join(__dirname, '..', 'package.json'));
-const CrawlKit = require(path.join(__dirname, '..', pkg.main));
-const Finder = require(path.join(srcFolder, 'Finder.js'));
-const Runner = require(path.join(srcFolder, 'Runner.js'));
+const pkg = require('../package.json');
+const CrawlKit = require('../');
+const Finder = require('../src/Finder.js');
+const Runner = require('../src/Runner.js');
 
-const genericLinkFinder = require(path.join('..', 'finders', 'genericAnchors.js'));
+const genericLinkFinder = require('../finders/genericAnchors.js');
 
 chai.should();
 chai.use(chaiAsPromised);
@@ -575,7 +575,7 @@ describe('CrawlKit', function main() {
           getRunnable: () => function successRunner() {
             window.callPhantom(null, 'success');
           },
-          transformResult: (result) => Promise.resolve(result.toUpperCase()),
+          transformResult: result => Promise.resolve(result.toUpperCase()),
         });
 
         const results = {};
@@ -1064,7 +1064,8 @@ describe('CrawlKit', function main() {
       const crawler = createCrawler(url);
       let fails = crawler.tries = 3;
       const flakyRunnable = sinon.spy(() => {
-        if (--fails > 0) {
+        fails -= 1;
+        if (fails > 0) {
           throw new HeadlessError();
         }
         return function resolvingFunction() {
