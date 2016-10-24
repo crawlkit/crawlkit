@@ -70,7 +70,7 @@
     "eslint-plugin-react": "^6.4.1",
     "express": "^4.14.0",
     "freeport": "^1.0.5",
-    "http-auth": "^2.4.11",
+    "http-auth": "^3.0.1",
     "http-proxy": "^1.15.1",
     "jsdoc": "^3.4.2",
     "mocha": "^3.1.2",
