@@ -28,7 +28,7 @@ module.exports = (crawlerInstance, writeResult, runnerKey, finderKey) => {
         Starting to crawl.
         Concurrent PhantomJS browsers: ${crawlerInstance.concurrency}.
     `);
-  const pool = createPhantomPool(logger, crawlerInstance, prefix);
+  const pool = createPhantomPool(logger, crawlerInstance);
   const seen = new Set();
 
   return timedRun(logger, (done) => {

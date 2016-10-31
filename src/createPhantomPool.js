@@ -1,19 +1,22 @@
 'use strict'; // eslint-disable-line
 
-const poolModule = require('generic-pool');
+const genericPool = require('generic-pool');
 const async = require('async');
 const driver = require('node-phantom-simple');
 const phantomjs = require('phantomjs-prebuilt');
-const debug = require('debug');
 
-module.exports = (logger, crawlerInstance, prefix) => {
-  const poolDebug = {};
+module.exports = (logger, crawlerInstance) => {
   const concurrency = crawlerInstance.concurrency;
   const phantomParameters = crawlerInstance.phantomParameters;
   const browserCookies = crawlerInstance.browserCookies;
 
-  return poolModule.Pool({ // eslint-disable-line new-cap
-    create: (callback) => {
+  const config = {
+    refreshIdle: false,
+    max: concurrency,
+  };
+
+  const factory = {
+    create: () => new Promise((createResolve, createReject) => {
       async.waterfall([
         function createPhantom(done) {
           logger.debug('Creating PhantomJS instance');
@@ -47,18 +50,15 @@ module.exports = (logger, crawlerInstance, prefix) => {
             done(cookieErr, browser);
           });
         },
-      ], callback);
-    },
+      ], err => (err ? createReject(err) : createResolve()));
+    }),
     destroy: (browser) => {
       logger.debug('Destroying PhantomJS instance.');
       browser.exit();
       logger.debug('PhantomJS instance destroyed.');
+      return Promise.resolve(null);
     },
-    refreshIdle: false,
-    max: concurrency,
-    log: (message, level) => {
-      poolDebug[level] = poolDebug[level] || debug(`${prefix}:pool:phantomjs:${level}`);
-      poolDebug[level](message);
-    },
-  });
+  };
+
+  return genericPool.createPool(factory, config);
 };
