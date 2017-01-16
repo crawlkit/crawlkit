@@ -53,7 +53,7 @@
     "juration": "0.0.1",
     "nanotimer": "^0.3.14",
     "node-phantom-simple": "^2.2.4",
-    "object-assign": "^4.1.0",
+    "object-assign": "^4.1.1",
     "once": "^1.4.0",
     "phantomjs-prebuilt": "^2.1.13",
     "urijs": "^1.18.2"
