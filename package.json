@@ -28,7 +28,7 @@
   "scripts": {
     "docs": "jsdoc -c conf.json",
     "test": "mocha",
-    "setup": "validate-commit-msg",
+    "pretest": "validate-commit-msg",
     "lint": "eslint .",
     "tdd": "mocha --watch --reporter dot",
     "validate": "npm ls",
