@@ -45,7 +45,7 @@
     "JSONStream": "^1.2.1",
     "async": "^2.1.5",
     "callback-timeout": "^3.0.0",
-    "chance": "^1.0.4",
+    "chance": "^1.0.6",
     "debug": "^2.6.1",
     "define-error": "^1.1.0",
     "generic-pool": "^2.4.3",
