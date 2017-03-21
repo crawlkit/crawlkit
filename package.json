@@ -55,7 +55,7 @@
     "node-phantom-simple": "^2.2.4",
     "object-assign": "^4.1.1",
     "once": "^1.4.0",
-    "phantomjs-prebuilt": "^2.1.13",
+    "phantomjs-prebuilt": "^2.1.14",
     "urijs": "^1.18.7"
   },
   "devDependencies": {
