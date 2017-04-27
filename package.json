@@ -71,7 +71,7 @@
     "express": "^4.15.0",
     "freeport": "^1.0.5",
     "http-auth": "^3.0.1",
-    "http-proxy": "^1.15.1",
+    "http-proxy": "^1.16.1",
     "jsdoc": "^3.4.2",
     "mocha": "^3.3.0",
     "precommit-hook": "^3.0.0",
