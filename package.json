@@ -75,7 +75,7 @@
     "jsdoc": "^3.4.2",
     "mocha": "^3.3.0",
     "precommit-hook": "^3.0.0",
-    "semantic-release": "^4.3.5",
+    "semantic-release": "^6.3.6",
     "sinon": "^1.17.6",
     "sinon-chai": "^2.9.0",
     "validate-commit-message": "^3.0.1"
