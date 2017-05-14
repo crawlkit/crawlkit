@@ -73,7 +73,7 @@
     "http-auth": "^3.0.1",
     "http-proxy": "^1.15.1",
     "jsdoc": "^3.4.2",
-    "mocha": "^3.3.0",
+    "mocha": "^3.4.1",
     "precommit-hook": "^3.0.0",
     "semantic-release": "^6.3.6",
     "sinon": "^1.17.6",
