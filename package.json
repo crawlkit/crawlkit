@@ -49,7 +49,7 @@
     "debug": "^2.6.7",
     "define-error": "^1.1.0",
     "generic-pool": "^2.4.3",
-    "glob": "^7.1.1",
+    "glob": "^7.1.2",
     "juration": "0.1.0",
     "nanotimer": "^0.3.14",
     "node-phantom-simple": "^2.2.4",
